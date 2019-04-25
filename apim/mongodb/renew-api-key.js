@@ -78,37 +78,45 @@ ApiKeyRenewer.prototype.init = function () {
 ApiKeyRenewer.prototype.insertNewApiKey = function () {
     // Insert the new API key
     info("Inserting new API key...");
-    var status = db.keys.insert({
-        "_id": this.newApiKey,
-        "subscription": this.subscription._id,
-        "application": this.subscription.application,
-        "plan": this.subscription.plan,
-        "createdAt": this.now,
-        "updatedAt": this.now,
-        "revoked": false,
-        "_class": "io.gravitee.repository.mongodb.management.internal.model.ApiKeyMongo"
-    });
-    if (status.nInserted !== 1) {
-        error("Unable to insert new API key. Apply rollback and exit...", false);
-        rollback();
+    try {
+        var status = db.keys.insertOne({
+            "_id": this.newApiKey,
+            "subscription": this.subscription._id,
+            "application": this.subscription.application,
+            "plan": this.subscription.plan,
+            "createdAt": this.now,
+            "updatedAt": this.now,
+            "revoked": false,
+            "_class": "io.gravitee.repository.mongodb.management.internal.model.ApiKeyMongo"
+        });
+        if (status.insertedId !== this.newApiKey) {
+            throw 'Unable to insert new API key. Apply rollback and exit...';
+        }
+    } catch (e) {
+        error(e, false);
+        this.rollback();
     }
 
     // Insert audit associated to API key creation
     info("Inserting audit associated to API key creation...");
     this.insertNewApiKeyAuditId = ObjectId().valueOf();
-    status = db.audits.insert({
-        "_id": this.insertNewApiKeyAuditId,
-        "referenceId": this.subscription.api,
-        "referenceType": "API",
-        "user": this.user._id,
-        "event": "APIKEY_RENEWED",
-        "properties": {"API_KEY": this.newApiKey},
-        "patch": "[{\"op\":\"add\",\"path\":\"/application\",\"value\":\"" + this.subscription.application + "\"},{\"op\":\"add\",\"path\":\"/key\",\"value\":\"" + this.newApiKey + "\"},{\"op\":\"add\",\"path\":\"/plan\",\"value\":\"" + this.subscription.plan + "\"},{\"op\":\"add\",\"path\":\"/revoked\",\"value\":false},{\"op\":\"add\",\"path\":\"/subscription\",\"value\":\"" + this.subscription._id + "\"}]",
-        "createdAt": this.now,
-        "_class": "io.gravitee.repository.mongodb.management.internal.model.AuditMongo"
-    });
-    if (status.nInserted !== 1) {
-        error("Unable to insert audit associated to API key creation. Apply rollback and exit...", false);
+    try {
+        status = db.audits.insertOne({
+            "_id": this.insertNewApiKeyAuditId,
+            "referenceId": this.subscription.api,
+            "referenceType": "API",
+            "user": this.user._id,
+            "event": "APIKEY_RENEWED",
+            "properties": {"API_KEY": this.newApiKey},
+            "patch": "[{\"op\":\"add\",\"path\":\"/application\",\"value\":\"" + this.subscription.application + "\"},{\"op\":\"add\",\"path\":\"/key\",\"value\":\"" + this.newApiKey + "\"},{\"op\":\"add\",\"path\":\"/plan\",\"value\":\"" + this.subscription.plan + "\"},{\"op\":\"add\",\"path\":\"/revoked\",\"value\":false},{\"op\":\"add\",\"path\":\"/subscription\",\"value\":\"" + this.subscription._id + "\"}]",
+            "createdAt": this.now,
+            "_class": "io.gravitee.repository.mongodb.management.internal.model.AuditMongo"
+        });
+        if (status.insertedId !== this.insertNewApiKeyAuditId) {
+            throw 'Unable to insert audit associated to API key creation. Apply rollback and exit...';
+        }
+    } catch (e) {
+        error(e, false);
         this.rollback();
     }
 };
@@ -119,35 +127,43 @@ ApiKeyRenewer.prototype.insertNewApiKey = function () {
 ApiKeyRenewer.prototype.revokeOldApiKey = function () {
     // Revoke old API key
     info("Revocating old API key...");
-    var status = db.keys.updateOne({
-        '_id': this.oldApiKey
-    }, {
-        '$set': {
-            'revoked': true,
-            'revokedAt': this.now
+    try {
+        var status = db.keys.updateOne({
+            '_id': this.oldApiKey
+        }, {
+            '$set': {
+                'revoked': true,
+                'revokedAt': this.now
+            }
+        });
+        if (!status.acknowledged || status.modifiedCount !== 1) {
+            throw 'Unable to update old API key to revoke it. Apply rollback and exit...';
         }
-    });
-    if (!status.acknowledged || status.modifiedCount !== 1) {
-        error("Unable to update old API key to revoke it. Apply rollback and exit...", false);
+    } catch (e) {
+        error(e, false);
         this.rollback();
     }
 
     // Insert audit associated to API key revocation
     info("Inserting audit associated to API key revocation...");
     this.revokeOldApiKeyAuditId = ObjectId().valueOf();
-    status = db.audits.insert({
-        "_id": this.revokeOldApiKeyAuditId,
-        "referenceId": this.subscription.api,
-        "referenceType": "API",
-        "user": this.user._id,
-        "event": "APIKEY_REVOKED",
-        "properties": {"API_KEY": this.oldApiKey},
-        "patch": "[{\"op\":\"add\",\"path\":\"/revokedAt\",\"value\":" + this.now + "},{\"op\":\"replace\",\"path\":\"/revoked\",\"value\":true}]",
-        "createdAt": this.now,
-        "_class": "io.gravitee.repository.mongodb.management.internal.model.AuditMongo"
-    });
-    if (status.nInserted !== 1) {
-        error("Unable to insert audit associated to API key revocation. Apply rollback and exit...", false);
+    try {
+        status = db.audits.insertOne({
+            "_id": this.revokeOldApiKeyAuditId,
+            "referenceId": this.subscription.api,
+            "referenceType": "API",
+            "user": this.user._id,
+            "event": "APIKEY_REVOKED",
+            "properties": {"API_KEY": this.oldApiKey},
+            "patch": "[{\"op\":\"add\",\"path\":\"/revokedAt\",\"value\":" + this.now.getTime() + "},{\"op\":\"replace\",\"path\":\"/revoked\",\"value\":true}]",
+            "createdAt": this.now,
+            "_class": "io.gravitee.repository.mongodb.management.internal.model.AuditMongo"
+        });
+        if (status.insertedId !== this.revokeOldApiKeyAuditId) {
+            throw 'Unable to insert audit associated to API key revocation. Apply rollback and exit...';
+        }
+    } catch (e) {
+        error(e, false);
         this.rollback();
     }
 };
@@ -156,22 +172,26 @@ ApiKeyRenewer.prototype.revokeOldApiKey = function () {
  * Rollback changes according to ApiKeyRenewer context
  */
 ApiKeyRenewer.prototype.rollback = function () {
-    db.keys.remove({'_id': this.newApiKey});
-    if (this.insertNewApiKeyAuditId) {
-        db.audits.remove({'_id': this.insertNewApiKeyAuditId});
-    }
-    db.keys.updateOne({
-        '_id': this.oldApiKey
-    }, {
-        '$set': {
-            'revoked': false
-        },
-        '$unset': {
-            'revokedAt': ''
+    try {
+        db.keys.remove({'_id': this.newApiKey});
+        if (this.insertNewApiKeyAuditId) {
+            db.audits.remove({'_id': this.insertNewApiKeyAuditId});
         }
-    });
-    if (this.revokeOldApiKeyAuditId) {
-        db.audits.remove({'_id': this.revokeOldApiKeyAuditId});
+        db.keys.updateOne({
+            '_id': this.oldApiKey
+        }, {
+            '$set': {
+                'revoked': false
+            },
+            '$unset': {
+                'revokedAt': ''
+            }
+        });
+        if (this.revokeOldApiKeyAuditId) {
+            db.audits.remove({'_id': this.revokeOldApiKeyAuditId});
+        }
+    } catch (e) {
+        error("Rollback cannot be fully applied: " + e)
     }
     error("Rollback done. Exiting...");
 };
