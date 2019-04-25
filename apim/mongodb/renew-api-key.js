@@ -95,7 +95,7 @@ ApiKeyRenewer.prototype.insertNewApiKey = function () {
 
     // Insert audit associated to API key creation
     info("Inserting audit associated to API key creation...");
-    this.insertNewApiKeyAuditId = ObjectId();
+    this.insertNewApiKeyAuditId = ObjectId().valueOf();
     status = db.audits.insert({
         "_id": this.insertNewApiKeyAuditId,
         "referenceId": this.subscription.api,
@@ -134,7 +134,7 @@ ApiKeyRenewer.prototype.revokeOldApiKey = function () {
 
     // Insert audit associated to API key revocation
     info("Inserting audit associated to API key revocation...");
-    this.revokeOldApiKeyAuditId = ObjectId();
+    this.revokeOldApiKeyAuditId = ObjectId().valueOf();
     status = db.audits.insert({
         "_id": this.revokeOldApiKeyAuditId,
         "referenceId": this.subscription.api,
