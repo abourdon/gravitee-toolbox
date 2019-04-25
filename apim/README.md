@@ -1,4 +1,4 @@
-# Set of useful script when using the Gravitee.io APIM solution
+# Set of useful scripts when using the Gravitee.io APIM solution
 
 This directory is organized as follows:
 

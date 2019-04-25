@@ -1,4 +1,4 @@
-# Set of useful script when using the Gravitee.io API Platform
+# Set of useful scripts when using the Gravitee.io API Platform
 
 This project is organized as follows:
 
