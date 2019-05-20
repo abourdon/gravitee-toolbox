@@ -2,6 +2,7 @@
 
 This directory is organized as follows:
 
-| Directory                 | Description                                                           |
-| ------------------------- | --------------------------------------------------------------------- |
-| [mongodb](./mongodb)      | Useful scripts when using the Gravitee.io APIM MongoDB repository     |
+| Directory                                 | Description                                                           |
+| ----------------------------------------- | --------------------------------------------------------------------- |
+| [management-api](./management-api)        | Useful scripts when using the Gravitee.io APIM Management API         |
+| [mongodb](./mongodb)                      | Useful scripts when using the Gravitee.io APIM MongoDB repository     |

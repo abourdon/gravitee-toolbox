@@ -1,3 +1,9 @@
 # IntelliJ resources
-.idea/
-*.iml
+/.idea/
+/*.iml
+
+# VSCode resources
+/.vscode/
+
+# NodeJS resources
+node_modules/
