@@ -1,8 +1,8 @@
-# Set of useful scripts when using the Gravitee.io APIM solution
+# [Gravitee.io API Management](https://gravitee.io/products/apim/) (APIM) dedicated scripts
 
 This directory is organized as follows:
 
 | Directory                                 | Description                                                           |
 | ----------------------------------------- | --------------------------------------------------------------------- |
-| [management-api](./management-api)        | Useful scripts when using the Gravitee.io APIM Management API         |
-| [mongodb](./mongodb)                      | Useful scripts when using the Gravitee.io APIM MongoDB repository     |
+| [management-api](./management-api)        | APIM's Management API dedicated scripts                               |
+| [mongodb](./mongodb)                      | APIM's MongoDB dedicated scripts                                      |

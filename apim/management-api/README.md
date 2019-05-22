@@ -1,4 +1,4 @@
-# Set of useful Management API scripts when using the Gravitee.io APIM solution
+# [Gravitee.io API Management](https://gravitee.io/products/apim/)'s Management API dedicated scripts
 
 ## Prequesities 
 
