@@ -55,12 +55,12 @@ class ManagementApi {
 
     /**
      * List all APIs according to the optional query parameter.
-     * Each matched API is emitted individually, by allowing delay between events according to the given delayPeriod (by default 10 milliseconds)
+     * Each matched API is emitted individually, by allowing delay between events according to the given delayPeriod (by default 50 milliseconds) in order to avoid huge flooding in case of high number of APIs.
      * 
-     * @param {number} delayPeriod the delay period to temporize API broadcast (by default 10 milliseconds)
+     * @param {number} delayPeriod the delay period to temporize API broadcast (by default 50 milliseconds)
      * @param {string} query the optional full text query to filter list APIs request
      */
-    listApis(delayPeriod = 10, query) {
+    listApis(delayPeriod = 50, query) {
         const requestSettings = query ? {
             method: 'post',
             url: 'apis/_search',
