@@ -149,6 +149,10 @@ class ManagementApi {
                 rejectUnauthorized: false
             })
         }
+        // If no timeout is defined then set a default one to 10s
+        if (!requestSettings.timeout) {
+            requestSettings.timeout = 10000;
+        }
         return Rx.from(Axios.request(requestSettings))
             .pipe(
                 // Only emit answer data

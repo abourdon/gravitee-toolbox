@@ -34,14 +34,16 @@ $ node <script>.js -h
 ## Script example
 
 ```js
-const ManagementApiScript = require('./lib/management-api-script');
+const ManagementApi = require('./lib/management-api-script');
 const { flatMap } = require('rxjs/operators');
 const util = require('util')
 
 /**
  * List all registered APIs by displaying their name and context path.
+ * 
+ * @author Aurelien Bourdon
  */
-class ListApis extends ManagementApiScript.ManagementApiScript {
+class ListApis extends ManagementApi.Script {
     definition(managementApi) {
         managementApi
             .login()
@@ -49,19 +51,12 @@ class ListApis extends ManagementApiScript.ManagementApiScript {
                 flatMap(_token => managementApi.listApis()),
                 flatMap(api => managementApi.export(api.id))
             )
-            .subscribe(
-                api => console.log(util.format('%s (%s)', api.name, api.proxy.context_path)),
-                error => {
-                    this.displayError(error);
-                    process.exit(1)
-                },
-                _complete => {
-                    this.displayInfo('Operation complete.')
-                });
+            .subscribe(this.defaultSubscriber(
+                api => console.log(util.format('%s (%s)', api.name, api.proxy.context_path))
+            ));
     }
 }
 new ListApis('list-apis').run();
-```
 
 ## Add your own script
 
