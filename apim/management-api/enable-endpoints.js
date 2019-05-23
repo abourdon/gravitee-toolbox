@@ -27,7 +27,7 @@ class EnableEndpoints extends ManagementApi.Script {
      */
     selectEndpoints(managementApi) {
         managementApi
-            .login()
+            .login(this.argv['username'], this.argv['password'])
             .pipe(
                 // Search for API with desired context-path
                 flatMap(_token => managementApi.listApis()),

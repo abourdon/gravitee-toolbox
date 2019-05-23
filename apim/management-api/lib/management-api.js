@@ -16,18 +16,20 @@ class ManagementApi {
     }
 
     /**
-     * Ask for login, based on the Apim instance's Apim.Settings.
-     * Once logged, then set the Apim instance's Apim.Settings by the login bearer token
+     * Ask for login, based on the given credentials
+     * Once logged the Apim instance's Apim.Settings will be set by the login bearer token
      * 
+     * @param {string} username the username to login
+     * @param {string} password the username's password
      * @returns {Obervable}
      */
-    login() {
+    login(username, password) {
         return this._request({
             method: 'post',
             url: 'user/login',
             auth: {
-                username: this.settings.username,
-                password: this.settings.password
+                username: username,
+                password: password
             }
         }).pipe(
             // Add the login bearer token to the current Apim.Settings
@@ -189,10 +191,8 @@ class ManagementApi {
  * Associated settings to any ManagementAPI instance
  */
 ManagementApi.Settings = class {
-    constructor(apimUrl, username, password) {
+    constructor(apimUrl) {
         this.apimUrl = apimUrl;
-        this.username = username;
-        this.password = password;
     }
 }
 

@@ -94,7 +94,7 @@ class Script {
      * Run this Management API Script instance by actually running the script definition specified by #definition(ManagementApi)
      */
     run() {
-        const managementApi = ManagementApi.createInstance(new ManagementApi.Settings(this.argv.url, this.argv.username, this.argv.password));
+        const managementApi = ManagementApi.createInstance(new ManagementApi.Settings(this.argv.url));
         this.displayInfo("Starting...")
         this.definition(managementApi);
     }

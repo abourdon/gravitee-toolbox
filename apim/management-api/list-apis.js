@@ -14,7 +14,7 @@ class ListApis extends ManagementApi.Script {
 
     definition(managementApi) {
         managementApi
-            .login()
+            .login(this.argv['username'], this.argv['password'])
             .pipe(
                 flatMap(_token => managementApi.listApis(this.argv['query-filter'])),
                 flatMap(api => managementApi.export(api.id))
