@@ -60,4 +60,4 @@ new ListApis('list-apis').run();
 
 ## Add your own script
 
-Once inherited from the [`ManagementApiScript`](./lib/management-api-script.js) class, a script only needs to define its execution by overridding the `ManagementApiScript#definition(ManagementApi)` method (see example above).
+Once inherited from the [`Script`](./lib/management-api-script.js) class, a script only needs to define its execution by overridding the `Script#definition(ManagementApi)` method (see example above).
