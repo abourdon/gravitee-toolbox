@@ -16,11 +16,11 @@ class ListApis extends ManagementApi.Script {
         managementApi
             .login()
             .pipe(
-                flatMap(_token => managementApi.listApis(this.argv.q)),
+                flatMap(_token => managementApi.listApis(this.argv['query-filter'])),
                 flatMap(api => managementApi.export(api.id))
             )
             .subscribe(this.defaultSubscriber(
-                api => console.log(util.format('%s (%s)', api.name, api.proxy.context_path))
+                api => this.displayRaw(util.format('%s (%s)', api.name, api.proxy.context_path))
             ));
     }
 }

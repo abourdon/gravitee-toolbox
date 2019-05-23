@@ -22,17 +22,16 @@ class ManagementApi {
      * @returns {Obervable}
      */
     login() {
-        const that = this;
         return this._request({
             method: 'post',
             url: 'user/login',
             auth: {
-                username: that.settings.username,
-                password: that.settings.password
+                username: this.settings.username,
+                password: this.settings.password
             }
         }).pipe(
             // Add the login bearer token to the current Apim.Settings
-            tap(access => that.settings.bearer = access.token)
+            tap(access => this.settings.bearer = access.token)
         );
     }
 
@@ -43,13 +42,12 @@ class ManagementApi {
      * @returns {Observable}
      */
     logout() {
-        const that = this;
         return this._request({
             method: 'post',
             url: 'user/logout'
         }).pipe(
             // Remove the login bearer token
-            tap(_answer => delete that.settings.bearer)
+            tap(_answer => delete this.settings.bearer)
         )
     }
 
@@ -127,6 +125,32 @@ class ManagementApi {
         }
         requestSettings.url = apiId ? util.format('apis/%s/import', apiId) : 'apis/import';
         return this._request(requestSettings);
+    }
+
+    /**
+     * Deploy API identified by the given API identifier
+     * 
+     * @param {string} apiId identifier of the API to deploy
+     */
+    deploy(apiId) {
+        const requestSettings = {
+            method: 'post',
+            url: util.format('apis/%s/deploy', apiId)
+        }
+        return this._request(requestSettings);
+    }
+
+    /**
+     * Update the given API definition to the given API id. Actually do an #import(api, apiId) and then a #deploy(apiId)
+     * 
+     * @param {object} api 
+     * @param {string} apiId 
+     */
+    update(api, apiId) {
+        return this.import(api, apiId)
+            .pipe(
+                flatMap(importedApi => this.deploy(importedApi.id))
+            );
     }
 
     /**

@@ -21,8 +21,7 @@ class Script {
         // Add specific script options to the global ones
         this.argv = Object.assign({}, Script.DEFAULT_SCRIPT_OPTIONS);
         if (options) {
-            const that = this;
-            Object.keys(options).forEach(optionKey => that.argv = that.argv.option(optionKey, options[optionKey]));
+            Object.keys(options).forEach(optionKey => this.argv = this.argv.option(optionKey, options[optionKey]));
         }
         this.argv = this.argv
             .help('h')
@@ -35,6 +34,15 @@ class Script {
      */
     get name() {
         return 'unnamed-script';
+    }
+
+    /**
+     * Display a message as it without any log level
+     * 
+     * @param {string} message the message to display as it without any log level
+     */
+    displayRaw(message) {
+        console.log(message);
     }
 
     /**
@@ -58,17 +66,24 @@ class Script {
     }
 
     /**
-     * Create a default Rx.Subscriber that will handle error and complete part
+     * Display an error message and exit process with error
+     * 
+     * @param {string} message the error message to display
+     */
+    handleError(error) {
+        this.displayError(util.inspect(error));
+        process.exit(1);
+    }
+
+    /**
+     * Create a common Rx.Subscriber that will handle error and complete part
      * 
      * @param {function(x: ?T)} next the function that will be called at any next event
      */
     defaultSubscriber(next) {
         return Rx.Subscriber.create(
             next,
-            error => {
-                this.displayError(util.inspect(error));
-                process.exit(1);
-            },
+            this.handleError,
             _complete => {
                 this.displayInfo('Operation complete.')
             }
