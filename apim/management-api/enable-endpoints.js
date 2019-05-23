@@ -153,7 +153,7 @@ class EnableEndpoints extends ManagementApi.Script {
             .pipe(
                 // Enable/disable endpoint
                 map(apiAndFilteredEndpoint => {
-                    apiAndFilteredEndpoint.filteredEndpoint.backup = this.argv['action'] === 'enable' ? false : true;
+                    apiAndFilteredEndpoint.filteredEndpoint.backup = this.argv['action'] === 'disable'
                     return apiAndFilteredEndpoint;
                 }),
 
