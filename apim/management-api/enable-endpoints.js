@@ -20,6 +20,11 @@ class EnableEndpoints extends ManagementApi.Script {
         this.selectEndpoints(managementApi);
     }
 
+    /**
+     * First step of the script definition: select endpoints according to user predicate
+     * 
+     * @param {object} managementApi the ManagementApi instance from which request for Management API resources
+     */
     selectEndpoints(managementApi) {
         managementApi
             .login()
@@ -99,10 +104,10 @@ class EnableEndpoints extends ManagementApi.Script {
     }
 
     /**
-     * Sub-definition that ask for user confirmation before to apply endpoint update
+     * Second step of the script definition: ask for user confirmation regarding on selected endpoints
      * 
-     * @param {object} apisAndfilteredEndpoints 
-     * @param {object} managementApi 
+     * @param {object} apisAndfilteredEndpoints the list of selected endpoints with their associated APIs
+     * @param {object} managementApi the ManagementApi instance from which request for Management API resources
      */
     askForConfirmation(apisAndfilteredEndpoints, managementApi) {
         var question = apisAndfilteredEndpoints.reduce(
@@ -137,10 +142,10 @@ class EnableEndpoints extends ManagementApi.Script {
     }
 
     /**
-     * Sub-definition that update selected endpoints to apply enabling/disabling
+     * Last step of the script definition: apply update on selected endpoints to enable or disable them
      * 
-     * @param {object} apisAndFilteredEndpoints 
-     * @param {object} managementApi 
+     * @param {object} apisAndfilteredEndpoints the list of selected endpoints with their associated APIs
+     * @param {object} managementApi the ManagementApi instance from which request for Management API resources
      */
     enableOrDisableEndpoints(apisAndFilteredEndpoints, managementApi) {
         Rx
