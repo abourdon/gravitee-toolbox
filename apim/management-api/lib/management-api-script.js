@@ -27,7 +27,10 @@ class Script {
             const that = this;
             Object.keys(options).forEach(optionKey => that.argv = that.argv.option(optionKey, options[optionKey]));
         }
-        this.argv = this.argv.argv;
+        this.argv = this.argv
+            .help('h')
+            .alias('h', 'help')
+            .argv;
     }
 
     /**
@@ -116,8 +119,6 @@ Script.DEFAULT_SCRIPT_OPTIONS = yargs
         describe: "Only errors will be displayed, but no information message",
         type: 'boolean'
     })
-    .help('h')
-    .alias('h', 'help')
     .version(false)
     .wrap(null)
 
