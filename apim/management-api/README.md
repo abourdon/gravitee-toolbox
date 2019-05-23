@@ -26,6 +26,12 @@ Any script can be executed by using the `node` command line as follows:
 $ node <script>.js [OPTIONS]
 ```
 
+For instance:
+
+```bash
+$ node list-apis.js --url <APIM URL> --username <APIM username> --password <APIM password> --query-filter products
+```
+
 For more details about `[OPTIONS]`, ask for help:
 ```bash
 $ node <script>.js -h
