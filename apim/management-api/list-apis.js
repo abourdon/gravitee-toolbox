@@ -8,6 +8,10 @@ const util = require('util')
  * @author Aurelien Bourdon
  */
 class ListApis extends ManagementApi.Script {
+    get name() {
+        return 'list-apis';
+    }
+
     definition(managementApi) {
         managementApi
             .login()
@@ -20,12 +24,10 @@ class ListApis extends ManagementApi.Script {
             ));
     }
 }
-new ListApis(
-    'list-apis', {
-        'q': {
-            alias: 'query-filter',
-            describe: "String used to filter API list query (optional)",
-            type: 'string'
-        }
+new ListApis({
+    'q': {
+        alias: 'query-filter',
+        describe: "String used to filter API list query (optional)",
+        type: 'string'
     }
-).run();
+}).run();

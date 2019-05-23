@@ -15,12 +15,9 @@ class Script {
     /**
      * Create a new Management API script
      * 
-     * @param {string} name the name of the script (default unnamed-script)
      * @param {object} options the specific options to add to the global ones (Script.DEFAULT_SCRIPT_OPTIONS)
      */
-    constructor(name = 'unnamed-script', options) {
-        this.name = name;
-
+    constructor(options) {
         // Add specific script options to the global ones
         this.argv = Object.assign({}, Script.DEFAULT_SCRIPT_OPTIONS);
         if (options) {
@@ -31,6 +28,13 @@ class Script {
             .help('h')
             .alias('h', 'help')
             .argv;
+    }
+
+    /**
+     * Get the name of this Script (default unnamed-script)
+     */
+    get name() {
+        return 'unnamed-script';
     }
 
     /**

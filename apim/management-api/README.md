@@ -44,6 +44,10 @@ const util = require('util')
  * @author Aurelien Bourdon
  */
 class ListApis extends ManagementApi.Script {
+    get name() {
+        return 'list-apis';
+    }
+
     definition(managementApi) {
         managementApi
             .login()
@@ -56,17 +60,15 @@ class ListApis extends ManagementApi.Script {
             ));
     }
 }
-new ListApis(
-    'list-apis', {
-        'q': {
-            alias: 'query-filter',
-            describe: "String used to filter API list query (optional)",
-            type: 'string'
-        }
+new ListApis({
+    'q': {
+        alias: 'query-filter',
+        describe: "String used to filter API list query (optional)",
+        type: 'string'
     }
-).run();
+}).run();
 ```
 
 ## Add your own script
 
-Once inherited from the [`Script`](./lib/management-api-script.js) class, a script only needs to define its execution by overridding the `Script#definition(ManagementApi)` method (see example above).
+All the technical stuff is handled by the [`Script`](./lib/management-api-script.js) class. Then to add your own script, you just have to inherit from it and only define the specific part of your script (i.e., its name and process definition by overridding the associated methods as shown above).
