@@ -35,15 +35,15 @@ class EnableEndpoints extends ManagementApi.Script {
                 // Enrich API definition by a full export
                 flatMap(api => managementApi.export(api.id)),
 
-                // Filter by context-path
+                // Filter by context-paths
                 filter(api => this.argv['context-path'] ? api.proxy.context_path.search(this.argv['context-path']) !== -1 : true),
 
-                // Filter by groups
+                // Filter by endpoint groups
                 flatMap(api => {
                     if (!api.proxy.groups) {
                         return Rx.empty();
                     }
-                    const filteredGroups = api.proxy.groups.filter(group => this.argv['endpoint-group'] ? group.name.search(this.argv['endpoint-group']) !== -1 : true);
+                    const filteredGroups = api.proxy.groups.filter(group => this.argv['endpoint-group-name'] ? group.name.search(this.argv['endpoint-group-name']) !== -1 : true);
                     if (filteredGroups.length === 0) {
                         return Rx.empty();
                     }
@@ -59,13 +59,13 @@ class EnableEndpoints extends ManagementApi.Script {
                         );
                 }),
 
-                // Filter by endpoints
+                // Filter by endpoint names
                 flatMap(apiAndFilteredGroups => {
                     const endpoints = apiAndFilteredGroups.filteredGroup.endpoints;
                     if (!endpoints) {
                         return Rx.empty();
                     }
-                    const filteredEndpoints = endpoints.filter(endpoint => this.argv['endpoint'] ? endpoint.name.search(this.argv['endpoint']) !== -1 : true);
+                    const filteredEndpoints = endpoints.filter(endpoint => this.argv['endpoint-name'] ? endpoint.name.search(this.argv['endpoint-name']) !== -1 : true);
                     if (filteredEndpoints.length === 0) {
                         return Rx.empty();
                     }
@@ -80,6 +80,9 @@ class EnableEndpoints extends ManagementApi.Script {
                             })
                         );
                 }),
+
+                // Filter by endpoint target URLs
+                filter(apiAndFilteredEndpoint => this.argv['endpoint-target-url'] ? apiAndFilteredEndpoint.filteredEndpoint.target.search(this.argv['endpoint-target-url']) !== -1 : true),
 
                 // Reduce all api and endpoints to finally have only one result structure
                 reduce(
@@ -173,13 +176,18 @@ new EnableEndpoints({
         type: 'string'
     },
     'g': {
-        alias: 'endpoint-group',
+        alias: 'endpoint-group-name',
         describe: 'Add a regex filter on endpoint-group names',
         type: 'string'
     },
     'e': {
-        alias: 'endpoint',
+        alias: 'endpoint-name',
         describe: 'Add a regex filter on endpoint names',
+        type: 'string'
+    },
+    't': {
+        alias: 'endpoint-target-url',
+        describe: 'Add a regex filter on endpoint target URLs',
         type: 'string'
     },
     'a': {
