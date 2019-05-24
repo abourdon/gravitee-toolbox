@@ -169,17 +169,17 @@ class EnableEndpoints extends ManagementApi.Script {
 new EnableEndpoints({
     'c': {
         alias: 'context-path',
-        describe: "The API context-path",
+        describe: "Add a regex filter on API context-path value",
         type: 'string'
     },
     'g': {
         alias: 'endpoint-group',
-        describe: 'The target API endpoint group name',
+        describe: 'Add a regex filter on endpoint-group names',
         type: 'string'
     },
     'e': {
         alias: 'endpoint',
-        describe: 'The target API endpoint name',
+        describe: 'Add a regex filter on endpoint names',
         type: 'string'
     },
     'a': {
