@@ -19,14 +19,49 @@ class Script {
      */
     constructor(options) {
         // Add specific script options to the global ones
-        this.argv = Object.assign({}, Script.DEFAULT_SCRIPT_OPTIONS);
+        this.argv = Script.defaultOptions()
         if (options) {
-            Object.keys(options).forEach(optionKey => this.argv = this.argv.option(optionKey, options[optionKey]));
+            Object.keys(options).forEach(optionKey => {
+                this.argv = this.argv.option(optionKey, options[optionKey])
+            });
         }
         this.argv = this.argv
             .help('h')
             .alias('h', 'help')
             .argv;
+    }
+
+    /**
+     * Returns default options for any Script
+     */
+    static defaultOptions() {
+        return yargs
+            .usage('Usage: $0 [options]')
+            .option('url', {
+                alias: 'management-api-url',
+                describe: 'Management API base URL',
+                type: 'string',
+                demandOption: true
+            })
+            .option('u', {
+                alias: 'username',
+                describe: 'Username to connect to the Management API',
+                type: 'string',
+                demandOption: true
+            })
+            .option('p', {
+                alias: 'password',
+                describe: "Username's password to connect to the Management API",
+                type: 'string',
+                demandOption: true
+            })
+            .option('s', {
+                alias: 'silent',
+                describe: "Only errors will be displayed, but no information message",
+                type: 'boolean'
+            })
+            .version(false)
+            .wrap(null);
     }
 
     /**
@@ -109,37 +144,6 @@ class Script {
     }
 
 }
-
-/**
- * Default script options
-*/
-Script.DEFAULT_SCRIPT_OPTIONS = yargs
-    .usage('Usage: $0 [options]')
-    .option('url', {
-        alias: 'management-api-url',
-        describe: 'Management API base URL',
-        type: 'string',
-        demandOption: true
-    })
-    .option('u', {
-        alias: 'username',
-        describe: 'Username to connect to the Management API',
-        type: 'string',
-        demandOption: true
-    })
-    .option('p', {
-        alias: 'password',
-        describe: "Username's password to connect to the Management API",
-        type: 'string',
-        demandOption: true
-    })
-    .option('s', {
-        alias: 'silent',
-        describe: "Only errors will be displayed, but no information message",
-        type: 'boolean'
-    })
-    .version(false)
-    .wrap(null)
 
 module.exports = {
     Script: Script
