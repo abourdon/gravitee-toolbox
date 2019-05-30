@@ -2,15 +2,20 @@ const util = require('util')
 const https = require('https')
 const Axios = require('axios')
 const Rx = require('rxjs')
-const { take, concatMap, map, tap, flatMap } = require('rxjs/operators')
+const { concatMap, filter, flatMap, map, take, tap } = require('rxjs/operators')
 
 /**
- * Base class for Gravitee APIM's Management API actions.
+ * Gravitee.io APIM's Management API client instance.
  * 
  * @author Aurelien Bourdon
  */
 class ManagementApi {
 
+    /**
+     * Create a new ManagementApi client instance according to the given settings
+     * 
+     * @param {object} managementApiSettings settings of this ManagementApi client instance
+     */
     constructor(managementApiSettings) {
         this.settings = managementApiSettings;
     }
@@ -54,25 +59,33 @@ class ManagementApi {
     }
 
     /**
-     * List all APIs according to the optional query parameter.
+     * List all APIs according to the optional given filters.
      * Each matched API is emitted individually, by allowing delay between events according to the given delayPeriod (by default 50 milliseconds) in order to avoid huge flooding in case of high number of APIs.
      * 
-     * @param {string} query the optional full text query to filter list APIs request
+     * Available filters are:
+     * - byFreeText: apply a full text search
+     * - byContxtPath: to search against context paths (regular expression)
+     * - byEndpointGroupName: to search against endpoint group names (regular expression)
+     * - byEndointName: to search against endpoint name (regular expression)
+     * - byEndpointTarget: to search against endpoint target (regular expression)
+     * 
+     * @param {string} filters an object containing desired filters if necessary
      * @param {number} delayPeriod the delay period to temporize API broadcast (by default 50 milliseconds)
      */
-    listApis(query, delayPeriod = 50) {
-        const requestSettings = query ? {
-            method: 'post',
-            url: 'apis/_search',
-            params: {
-                q: query
-            }
-        } : {
+    listApis(filters = {}, delayPeriod = 50) {
+        const requestSettings = filters.byFreeText ?
+            {
+                method: 'post',
+                url: 'apis/_search',
+                params: {
+                    q: filters.byFreeText
+                }
+            } :
+            {
                 method: 'get',
                 url: 'apis'
             };
-        return this
-            ._request(requestSettings)
+        return this._request(requestSettings)
             .pipe(
                 // Emit each API foud
                 flatMap(apis => Rx.from(apis)),
@@ -84,7 +97,47 @@ class ManagementApi {
                         take(1),
                         map(_second => api)
                     )
-                )
+                ),
+
+                // Enrich API definition to allow deeper filtering
+                flatMap(api => this.export(api.id)),
+
+                // Apply filter on context-path if necessary
+                filter(api => !filters.byContextPath || api.proxy.context_path.search(filters.byContextPath) !== -1),
+
+                // Apply filter on endpoint group attributes if necessary
+                flatMap(api => {
+                    if (!filters.byEndpointGroupName) {
+                        return Rx.of(api);
+                    }
+                    if (!api.proxy.groups) {
+                        return Rx.empty();
+                    }
+                    return Rx
+                        .from(api.proxy.groups.filter(group => group.name.search(filters.byEndpointGroupName) !== -1))
+                        .pipe(
+                            map(() => api)
+                        );
+                }),
+
+                // Apply filter on endpoint attributes if necessary
+                flatMap(api => {
+                    if (!filters.byEndpointName && !filters.byEndpointTarget) {
+                        return Rx.of(api);
+                    }
+                    return Rx
+                        .of(api)
+                        .pipe(
+                            flatMap(api => api.proxy.groups ? Rx.from(api.proxy.groups) : Rx.empty()),
+                            flatMap(group => group.endpoints ? Rx.from(group.endpoints) : Rx.empty()),
+                            filter(endpoint => {
+                                const checkEndpointName = !filters.byEndpointName || endpoint.name.search(filters.byEndpointName) !== -1;
+                                const checkEndpointTarget = !filters.byEndpointTarget || endpoint.target.search(filters.byEndpointTarget) !== -1;
+                                return checkEndpointName && checkEndpointTarget;
+                            }),
+                            map(() => api)
+                        );
+                })
             )
     }
 

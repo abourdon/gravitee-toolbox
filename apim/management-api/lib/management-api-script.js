@@ -10,65 +10,55 @@ const Rx = require('rxjs')
  * 
  * @author Aurelien Bourdon
  */
-class Script {
+class ManagementApiScript {
 
     /**
-     * Create a new Management API script
+     * Create a new ManagementApi script by specifying its name and specific options
      * 
-     * @param {object} options the specific options to add to the global ones (Script.DEFAULT_SCRIPT_OPTIONS)
+     * @param {string} name the ManagementApi script name
+     * @param {object} specificOptions specific options of this ManagementApi script
      */
-    constructor(options) {
-        // Add specific script options to the global ones
-        this.argv = Script.defaultOptions()
-        if (options) {
-            Object.keys(options).forEach(optionKey => {
-                this.argv = this.argv.option(optionKey, options[optionKey])
-            });
-        }
-        this.argv = this.argv
-            .help('h')
-            .alias('h', 'help')
-            .argv;
+    constructor(name = 'unnamed-script', specificOptions = {}) {
+        this.name = name;
+        this.specificOptions = specificOptions;
     }
 
     /**
      * Returns default options for any Script
      */
     static defaultOptions() {
-        return yargs
-            .usage('Usage: $0 [options]')
-            .option('url', {
+        return Object.assign({}, {
+            'url': {
                 alias: 'management-api-url',
                 describe: 'Management API base URL',
                 type: 'string',
                 demandOption: true
-            })
-            .option('u', {
+            },
+            'u': {
                 alias: 'username',
                 describe: 'Username to connect to the Management API',
                 type: 'string',
                 demandOption: true
-            })
-            .option('p', {
+            },
+            'p': {
                 alias: 'password',
                 describe: "Username's password to connect to the Management API",
                 type: 'string',
                 demandOption: true
-            })
-            .option('s', {
+            },
+            's': {
                 alias: 'silent',
                 describe: "Only errors will be displayed, but no information message",
                 type: 'boolean'
-            })
-            .version(false)
-            .wrap(null);
+            }
+        });
     }
 
     /**
-     * Get the name of this Script (default unnamed-script)
+     * Get (full, i.e., specific + default) options of this ManagementApi script
      */
-    get name() {
-        return 'unnamed-script';
+    get options() {
+        return Object.assign(ManagementApiScript.defaultOptions(), this.specificOptions);
     }
 
     /**
@@ -115,21 +105,41 @@ class Script {
      * 
      * @param {function(x: ?T)} next the function that will be called at any next event
      */
-    defaultSubscriber(next) {
+    defaultSubscriber(next = () => { }) {
         return Rx.Subscriber.create(
             next,
-            this.handleError,
+            this.displayError,
             _complete => {
-                this.displayInfo('Operation complete.')
+                this.displayInfo('Done.')
             }
         );
+    }
+
+    /**
+     * Initialize this ManagementApi script command line arguments handler 
+     */
+    _initArgv() {
+        // Initialize yargs
+        this.argv = yargs
+            .usage('Usage: $0 [options]')
+            .help('h')
+            .alias('h', 'help')
+            .version(false)
+            .wrap(null)
+        // Add this ManagementApi script options
+        Object.keys(this.options).forEach(optionKey => {
+            this.argv = this.argv.option(optionKey, this.options[optionKey])
+        });
+        // Process to the check
+        this.argv = this.argv.argv;
     }
 
     /**
      * Run this Management API Script instance by actually running the script definition specified by #definition(ManagementApi)
      */
     run() {
-        const managementApi = ManagementApi.createInstance(new ManagementApi.Settings(this.argv.url));
+        this._initArgv();
+        const managementApi = ManagementApi.createInstance(new ManagementApi.Settings(this.argv['management-api-url']));
         this.displayInfo("Starting...")
         this.definition(managementApi);
     }
@@ -145,6 +155,4 @@ class Script {
 
 }
 
-module.exports = {
-    Script: Script
-}
+module.exports = ManagementApiScript;
