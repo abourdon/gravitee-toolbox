@@ -76,6 +76,13 @@ class ManagementApiScript {
      * @param {string} message the information message to display
      */
     displayInfo(message) {
+        // ###################### TOFIX #############################
+        // This function can't be call without a previous call to
+        // run (because it sets args with _initArgv function)
+        //
+        // In a rxjs pipeline, we can't use this function because
+        // we always have a new class instance I suppose
+        // ##########################################################
         if (!this.argv.silent) {
             console.log(util.format('%s: %s', this.name, message));
         }
@@ -104,11 +111,17 @@ class ManagementApiScript {
      * Create a common Rx.Subscriber that will handle error and complete part
      * 
      * @param {function(x: ?T)} next the function that will be called at any next event
+     * @param {function(x: ?T)} error the function that will be called on error
      */
-    defaultSubscriber(next = () => { }) {
+    defaultSubscriber(next = () => {}, error = this.displayError) {
+        // ###################### TOFIX #############################
+        // Error function default value (with this) do not 
+        // have object scope, it means that the name print in error
+        // message will always be undefined
+        // ##########################################################
         return Rx.Subscriber.create(
             next,
-            this.displayError,
+            error,
             _complete => {
                 this.displayInfo('Done.')
             }
@@ -126,7 +139,7 @@ class ManagementApiScript {
             .alias('h', 'help')
             .version(false)
             .wrap(null)
-        // Add this ManagementApi script options
+            // Add this ManagementApi script options
         Object.keys(this.options).forEach(optionKey => {
             this.argv = this.argv.option(optionKey, this.options[optionKey])
         });
