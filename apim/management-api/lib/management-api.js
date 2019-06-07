@@ -73,18 +73,16 @@ class ManagementApi {
      * @param {number} delayPeriod the delay period to temporize API broadcast (by default 50 milliseconds)
      */
     listApis(filters = {}, delayPeriod = 50) {
-        const requestSettings = filters.byFreeText ?
-            {
-                method: 'post',
-                url: 'apis/_search',
-                params: {
-                    q: filters.byFreeText
-                }
-            } :
-            {
-                method: 'get',
-                url: 'apis'
-            };
+        const requestSettings = filters.byFreeText ? {
+            method: 'post',
+            url: 'apis/_search',
+            params: {
+                q: filters.byFreeText
+            }
+        } : {
+            method: 'get',
+            url: 'apis'
+        };
         return this._request(requestSettings)
             .pipe(
                 // Emit each API foud
@@ -147,7 +145,7 @@ class ManagementApi {
      * @param {string} apiId to identify the API to export
      * @param {string} exclude list of fields to exclude from export (e.g 'pages,groups')
      */
-    export(apiId, exclude) {
+    export (apiId, exclude) {
         const requestSettings = {
             method: 'get',
             url: util.format('apis/%s/export', apiId)
@@ -173,7 +171,7 @@ class ManagementApi {
      * @param {object} api the API definition to create or update
      * @param {string} apiId if given then update API with apiId identifier with the given API definition
      */
-    import(api, apiId) {
+    import (api, apiId) {
         const requestSettings = {
             method: 'post',
             data: api
@@ -216,7 +214,7 @@ class ManagementApi {
     _request(requestDetails) {
         const requestSettings = Object.assign({}, requestDetails);
         requestSettings.baseURL = this.settings.apimUrl
-        // If login bearer is present, then add it to the request and eventually remove any configured authorization
+            // If login bearer is present, then add it to the request and eventually remove any configured authorization
         if (this.settings.bearer) {
             requestSettings.headers = Object.assign({}, requestSettings.headers);
             requestSettings.headers.Cookie = util.format('%s=Bearer %s', 'Auth-Graviteeio-APIM', this.settings.bearer);
@@ -232,6 +230,7 @@ class ManagementApi {
         if (!requestSettings.timeout) {
             requestSettings.timeout = 10000;
         }
+
         return Rx.from(Axios.request(requestSettings))
             .pipe(
                 // Only emit answer data
@@ -251,7 +250,7 @@ ManagementApi.Settings = class {
 
 module.exports = {
     Settings: ManagementApi.Settings,
-    createInstance: function (settings) {
+    createInstance: function(settings) {
         return new ManagementApi(settings);
     }
 }

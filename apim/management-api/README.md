@@ -37,6 +37,13 @@ For more details about `[OPTIONS]`, ask for help:
 $ node <script>.js -h
 ```
 
+## Script list
+
+Here are existing scripts :
+- `enable-endpoints.js` : Enable (or disable) API endpoints based on user predicate
+- `import-api.js` : Import existing API (update) depending a search. Import only if search returns exactly one result. 
+- `list-apis.js` : List all registered APIs by displaying their name and context path.
+
 ## Script example
 
 ```js
