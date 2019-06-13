@@ -2,7 +2,7 @@ const ManagementApiScript = require('./lib/management-api-script');
 const { flatMap, toArray, map } = require('rxjs/operators');
 const { throwError } = require('rxjs');
 const util = require('util');
-const fs = require('fs');
+const fsp = require('fs').promises
 const Rx = require('rxjs');
 
 /**
@@ -33,6 +33,12 @@ class ImportApi extends ManagementApiScript {
                     type: 'boolean',
                     default: false
                 },
+                'e': {
+                    alias: "encoding",
+                    describe: "Imported file encoding",
+                    type: 'string',
+                    default: 'utf8'
+                },
                 'filter-by-free-text': {
                     describe: "Filter APIs by a free text (full text search)"
                 },
@@ -56,22 +62,6 @@ class ImportApi extends ManagementApiScript {
         );
     }
 
-    /**
-     * Create a promise to read imported file content.
-     * @param {*} filepath File path
-     */
-    readFilePromise(filepath) {
-        return Rx.from(new Promise(function(resolve, reject) {
-            fs.readFile(filepath, "utf8", function(err, data) {
-                if (err) {
-                    reject(err);
-                } else {
-                    resolve({ content: data });
-                }
-            });
-        }));
-    }
-
     definition(managementApi) {
         managementApi
             .login(this.argv['username'], this.argv['password'])
@@ -79,7 +69,11 @@ class ImportApi extends ManagementApiScript {
                 flatMap(_token => {
                     // In case of new API, we do not need to get APIs
                     if (this.argv['new']) {
-                        return this.readFilePromise(this.argv['filepath']);
+                        return Rx.from(fsp.readFile(this.argv['filepath'], this.argv['encoding']))
+                            .pipe(
+                                // Map to JSON object
+                                map(x => Object.assign({ content: x, id: null }))
+                            );
                     }
 
                     // Search APIs
@@ -103,16 +97,21 @@ class ImportApi extends ManagementApiScript {
                             }
 
                             // Return promise with import file content
-                            return this.readFilePromise(this.argv['filepath'])
+                            return Rx.from(fsp.readFile(this.argv['filepath'], this.argv['encoding']))
                                 .pipe(
                                     // Add id to json object (for update)
-                                    map(x => Object.assign(x, { id: apis[0].id }))
+                                    map(x => Object.assign({ content: x }, { id: apis[0].id }))
                                 );
-                        }),
+                        })
                     )
                 }),
-                // Import or update API, depending deploy flag
-                flatMap(api => (this.argv['deploy']) ? managementApi.update(api.content, api.id) : managementApi.import(api.content, api.id))
+                // Import and deploy if flag is set
+                flatMap(api => (!this.argv['deploy']) ? managementApi.import(api.content, api.id) :
+                    managementApi.import(api.content, api.id)
+                    .pipe(
+                        flatMap(importedApi => managementApi.deploy(importedApi.id))
+                    )
+                )
             )
             .subscribe(
                 // ###################### TOFIX #############################
