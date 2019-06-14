@@ -66,44 +66,49 @@ class ImportApi extends ManagementApiScript {
         managementApi
             .login(this.argv['username'], this.argv['password'])
             .pipe(
-                flatMap(_token => {
-                    // In case of new API, we do not need to get APIs
-                    if (this.argv['new']) {
-                        return Rx.from(fsp.readFile(this.argv['filepath'], this.argv['encoding']))
-                            .pipe(
-                                // Map to JSON object
-                                map(x => Object.assign({ content: x, id: null }))
-                            );
-                    }
-
-                    // Search APIs
-                    return managementApi.listApis({
-                        byFreeText: this.argv['filter-by-free-text'],
-                        byContextPath: this.argv['filter-by-context-path'],
-                        byEndpointGroupName: this.argv['filter-by-endpoint-group-name'],
-                        byEndpointName: this.argv['filter-by-endpoint-name'],
-                        byEndpointTarget: this.argv['filter-by-endpoint-target']
-                    }).pipe(
-                        // Merge all APIs emitted into array
-                        toArray(),
-                        flatMap(apis => {
-                            // Throw error if more (or less) than one result
-                            if (apis.length !== 1) {
-                                var msg = util.format('%s APIs found, must find a single result. Be more precise in filters.', apis.length);
-                                apis.forEach(function (api) {
-                                    msg = msg + util.format('\n   - %s (%s)', api.name, api.proxy.context_path);
-                                });
-                                return throwError(msg);
-                            }
-
-                            // Return promise with import file content
-                            return Rx.from(fsp.readFile(this.argv['filepath'], this.argv['encoding']))
-                                .pipe(
-                                    // Add id to json object (for update)
-                                    map(x => Object.assign({ content: x }, { id: apis[0].id }))
-                                );
+                flatMap(_token =>
+                    Rx.from(fsp.readFile(this.argv['filepath'], this.argv['encoding']))
+                    .pipe(
+                        map(content => {
+                            var apiFilters = {
+                                 byFreeText: this.argv['filter-by-free-text'],
+                                 byContextPath: this.argv['filter-by-context-path'],
+                                 byEndpointGroupName: this.argv['filter-by-endpoint-group-name'],
+                                 byEndpointName: this.argv['filter-by-endpoint-name'],
+                                 byEndpointTarget: this.argv['filter-by-endpoint-target']
+                             };
+                             if (!this.argv['new'] && !this._hasDefinedFilters(apiFilters)) {
+                                const jsonContent = JSON.parse(content);
+                                this.displayInfo(util.format("No defined filters. Use context path from import file: %s", jsonContent.proxy.context_path));
+                                apiFilters.byContextPath = util.format("^%s$", jsonContent.proxy.context_path);
+                             }
+                             return new ImportContext(_token, content, apiFilters);
                         })
                     )
+                ),
+                flatMap(context => {
+                    if (this.argv['new']) {
+                        this.displayInfo("Create new API from import file");
+                        return Rx.of(Object.assign({ content: context.importedFileContent, id: null }))
+                    }
+
+                    return managementApi.listApis(context.apiFilters)
+                        .pipe(
+                            // Merge all APIs emitted into array
+                            toArray(),
+                            flatMap(apis => {
+                                // Throw error if more (or less) than one result
+                                if (apis.length !== 1) {
+                                    var msg = util.format('%s APIs found, must find a single result. Be more precise in filters.', apis.length);
+                                    apis.forEach(function (api) {
+                                        msg += util.format('\n   - %s (%s)', api.name, api.proxy.context_path);
+                                    });
+                                    return throwError(msg);
+                                }
+                                this.displayInfo(util.format("Found API %s", apis[0].id));
+                                return Rx.of(Object.assign({ content: context.importedFileContent, id: apis[0].id }));
+                            })
+                        )
                 }),
                 // Import and deploy if flag is set
                 flatMap(api => (!this.argv['deploy']) ? managementApi.import(api.content, api.id) :
@@ -112,8 +117,7 @@ class ImportApi extends ManagementApiScript {
                             flatMap(importedApi => managementApi.deploy(importedApi.id))
                         )
                 )
-            )
-            .subscribe(
+            ).subscribe(
                 this.defaultSubscriber(
                     () => { },
                     error => {
@@ -125,6 +129,26 @@ class ImportApi extends ManagementApiScript {
                     }
                 )
             );
+    }
+
+    /*
+     * Indicates whether at least one API filter has been defined.
+     */
+    _hasDefinedFilters(filters) {
+        return Object.keys(filters)
+            .filter(k => filters[k] !== undefined)
+            .length > 0;
+    }
+}
+
+/**
+ * Import context, containing information about executing import.
+ */
+ImportContext = class {
+    constructor(token, importedFileContent, apiFilters) {
+        this.token = token;
+        this.importedFileContent = importedFileContent;
+        this.apiFilters = apiFilters;
     }
 }
 

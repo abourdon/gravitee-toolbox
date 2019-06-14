@@ -85,9 +85,8 @@ class ManagementApi {
         };
         return this._request(requestSettings)
             .pipe(
-                // Emit each API foud
+                // Emit each API found
                 flatMap(apis => Rx.from(apis)),
-
                 // Apply delay between API emission
                 concatMap(api => Rx
                     .interval(delayPeriod)
@@ -175,7 +174,7 @@ class ManagementApi {
         const requestSettings = {
             method: 'post',
             data: api
-        }
+        };
         requestSettings.url = apiId ? util.format('apis/%s/import', apiId) : 'apis/import';
         return this._request(requestSettings);
     }
