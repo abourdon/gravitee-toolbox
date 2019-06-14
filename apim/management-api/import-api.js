@@ -90,7 +90,7 @@ class ImportApi extends ManagementApiScript {
                             // Throw error if more (or less) than one result
                             if (apis.length !== 1) {
                                 var msg = util.format('%s APIs found, must find a single result. Be more precise in filters.', apis.length);
-                                apis.forEach(function(api) {
+                                apis.forEach(function (api) {
                                     msg = msg + util.format('\n   - %s (%s)', api.name, api.proxy.context_path);
                                 });
                                 return throwError(msg);
@@ -108,33 +108,20 @@ class ImportApi extends ManagementApiScript {
                 // Import and deploy if flag is set
                 flatMap(api => (!this.argv['deploy']) ? managementApi.import(api.content, api.id) :
                     managementApi.import(api.content, api.id)
-                    .pipe(
-                        flatMap(importedApi => managementApi.deploy(importedApi.id))
-                    )
+                        .pipe(
+                            flatMap(importedApi => managementApi.deploy(importedApi.id))
+                        )
                 )
             )
             .subscribe(
-                // ###################### TOFIX #############################
-                // It's mandatory to have error function here and not a function
-                // in management-api-script : we lose script name.
-                //
-                // See TOFIX in management-api-script
-                // ##########################################################
                 this.defaultSubscriber(
-                    () => {},
-                    event => {
-                        // Error from Management, show body
-                        if (event.hasOwnProperty('message') && event.hasOwnProperty('response')) {
-                            console.error(
-                                util.format('%s: Error: %s, response body is <%s>',
-                                    this.name,
-                                    event.message,
-                                    JSON.stringify(event.response.data)
-                                )
-                            );
-                        } else { // Error on something else, just show content
-                            console.error(util.format('%s: Error: %s.', this.name, event));
-                        }
+                    () => { },
+                    error => {
+                        const errorMessage = error.hasOwnProperty('message') && error.hasOwnProperty('response')
+                            ? util.format('%s. Response body is <%s>)', error.message, util.inspect(error.response.data))
+                            : error;
+                        this.displayError(errorMessage);
+                        process.exit(1);
                     }
                 )
             );
