@@ -194,19 +194,6 @@ class ManagementApi {
     }
 
     /**
-     * Update the given API definition to the given API id. Actually do an #import(api, apiId) and then a #deploy(apiId)
-     * 
-     * @param {object} api 
-     * @param {string} apiId 
-     */
-    update(api, apiId) {
-        return this.import(api, apiId)
-            .pipe(
-                flatMap(importedApi => this.deploy(importedApi.id))
-            );
-    }
-
-    /**
      * Do a request to the Management API
      * 
      * @param {object} requestDetails details of the Management API request
