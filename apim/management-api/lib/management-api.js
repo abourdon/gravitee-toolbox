@@ -61,15 +61,13 @@ class ManagementApi {
     /**
      * List all APIs according to the optional given filters.
      * Each matched API is emitted individually, by allowing delay between events according to the given delayPeriod (by default 50 milliseconds) in order to avoid huge flooding in case of high number of APIs.
-     * 
+     * This listing retrieve APIs basic information. If you need API details or specific filters, prefer using #listApisDetails() instead.
+     *
      * Available filters are:
      * - byFreeText: apply a full text search
-     * - byContxtPath: to search against context paths (regular expression)
-     * - byEndpointGroupName: to search against endpoint group names (regular expression)
-     * - byEndointName: to search against endpoint name (regular expression)
-     * - byEndpointTarget: to search against endpoint target (regular expression)
-     * 
-     * @param {string} filters an object containing desired filters if necessary
+     * - byContextPath: to search against context paths (regular expression)
+     *
+     * @param {object} filters an object containing desired filters if necessary
      * @param {number} delayPeriod the delay period to temporize API broadcast (by default 50 milliseconds)
      */
     listApis(filters = {}, delayPeriod = 50) {
@@ -96,11 +94,31 @@ class ManagementApi {
                     )
                 ),
 
+                // Apply filter on context-path if necessary
+                filter(api => !filters.byContextPath || api.context_path.search(filters.byContextPath) !== -1)
+            );
+    }
+
+    /**
+     * List all APIs according to the optional given filters.
+     * Each matched API is emitted individually, by allowing delay between events according to the given delayPeriod (by default 50 milliseconds) in order to avoid huge flooding in case of high number of APIs.
+     * This listing requires to get API details for each API, through export feature, which is time consuming. If you do not need API details or specific filters, prefer using #listApis() instead.
+     * 
+     * Available filters are:
+     * - byFreeText: apply a full text search
+     * - byContextPath: to search against context paths (regular expression)
+     * - byEndpointGroupName: to search against endpoint group names (regular expression)
+     * - byEndpointName: to search against endpoint name (regular expression)
+     * - byEndpointTarget: to search against endpoint target (regular expression)
+     * 
+     * @param {object} filters an object containing desired filters if necessary
+     * @param {number} delayPeriod the delay period to temporize API broadcast (by default 50 milliseconds)
+     */
+    listApisDetails(filters = {}, delayPeriod = 50) {
+        return this.listApis(filters, delayPeriod)
+            .pipe(
                 // Enrich API definition to allow deeper filtering
                 flatMap(api => this.export(api.id)),
-
-                // Apply filter on context-path if necessary
-                filter(api => !filters.byContextPath || api.proxy.context_path.search(filters.byContextPath) !== -1),
 
                 // Apply filter on endpoint group attributes if necessary
                 flatMap(api => {
@@ -135,7 +153,7 @@ class ManagementApi {
                             map(() => api)
                         );
                 })
-            )
+            );
     }
 
     /**
