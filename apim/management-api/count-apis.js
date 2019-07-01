@@ -2,12 +2,14 @@ const ManagementApiScript = require('./lib/management-api-script');
 const { count, flatMap } = require('rxjs/operators');
 const util = require('util');
 
+const NO_DELAY_PERIOD = 0;
+
 /**
  * List all registered APIs by displaying their name and context path.
  * 
  * @author Aurelien Bourdon
  */
-class ListApis extends ManagementApiScript {
+class CountApis extends ManagementApiScript {
 
     constructor() {
         super(
@@ -40,18 +42,28 @@ class ListApis extends ManagementApiScript {
         managementApi
             .login(this.argv['username'], this.argv['password'])
             .pipe(
-                flatMap(_token => managementApi.listApis({
-                    byFreeText: this.argv['filter-by-free-text'],
-                    byContextPath: this.argv['filter-by-context-path'],
-                    byEndpointGroupName: this.argv['filter-by-endpoint-group-name'],
-                    byEndpointName: this.argv['filter-by-endpoint-name'],
-                    byEndpointTarget: this.argv['filter-by-endpoint-target'],
-                })),
+                flatMap(_token => {
+                    return this.hasDetailsFilters() ?
+                        managementApi.listApisDetails({
+                            byFreeText: this.argv['filter-by-free-text'],
+                            byContextPath: this.argv['filter-by-context-path'],
+                            byEndpointGroupName: this.argv['filter-by-endpoint-group-name'],
+                            byEndpointName: this.argv['filter-by-endpoint-name'],
+                            byEndpointTarget: this.argv['filter-by-endpoint-target'],
+                        }) : managementApi.listApis({
+                            byFreeText: this.argv['filter-by-free-text'],
+                            byContextPath: this.argv['filter-by-context-path'],
+                        }, NO_DELAY_PERIOD);
+                }),
                 count()
             )
             .subscribe(this.defaultSubscriber(
                 apiCount => this.displayRaw(util.format('There are %s APIs in the requested environment according to the given search predicate', apiCount))
             ));
     }
+
+    hasDetailsFilters() {
+        return this.argv['filter-by-endpoint-group-name'] || this.argv['filter-by-endpoint-name'] || this.argv['filter-by-endpoint-target'];
+    }
 }
-new ListApis().run();
+new CountApis().run();

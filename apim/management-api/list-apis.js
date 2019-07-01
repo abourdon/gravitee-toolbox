@@ -2,6 +2,8 @@ const ManagementApiScript = require('./lib/management-api-script');
 const { flatMap } = require('rxjs/operators');
 const util = require('util');
 
+const NO_DELAY_PERIOD = 0;
+
 /**
  * List all registered APIs by displaying their name and context path.
  * 
@@ -40,17 +42,27 @@ class ListApis extends ManagementApiScript {
         managementApi
             .login(this.argv['username'], this.argv['password'])
             .pipe(
-                flatMap(_token => managementApi.listApis({
-                    byFreeText: this.argv['filter-by-free-text'],
-                    byContextPath: this.argv['filter-by-context-path'],
-                    byEndpointGroupName: this.argv['filter-by-endpoint-group-name'],
-                    byEndpointName: this.argv['filter-by-endpoint-name'],
-                    byEndpointTarget: this.argv['filter-by-endpoint-target'],
-                }))
+                flatMap(_token => {
+                    return this.hasDetailsFilters() ?
+                        managementApi.listApisDetails({
+                            byFreeText: this.argv['filter-by-free-text'],
+                            byContextPath: this.argv['filter-by-context-path'],
+                            byEndpointGroupName: this.argv['filter-by-endpoint-group-name'],
+                            byEndpointName: this.argv['filter-by-endpoint-name'],
+                            byEndpointTarget: this.argv['filter-by-endpoint-target'],
+                        }) : managementApi.listApis({
+                            byFreeText: this.argv['filter-by-free-text'],
+                            byContextPath: this.argv['filter-by-context-path'],
+                        }, NO_DELAY_PERIOD);
+                }),
             )
             .subscribe(this.defaultSubscriber(
-                api => this.displayRaw(util.format('%s (%s)', api.name, api.proxy.context_path))
+                api => this.displayRaw(util.format('%s (%s)', api.name, this.hasDetailsFilters() ? api.proxy.context_path : api.context_path))
             ));
+    }
+
+    hasDetailsFilters() {
+        return this.argv['filter-by-endpoint-group-name'] || this.argv['filter-by-endpoint-name'] || this.argv['filter-by-endpoint-target'];
     }
 }
 new ListApis().run();
