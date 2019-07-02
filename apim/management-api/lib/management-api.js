@@ -156,6 +156,14 @@ class ManagementApi {
             );
     }
 
+    getQuality(apiId) {
+        const requestSettings = {
+            method: 'get',
+            url: util.format('apis/%s/quality', apiId)
+        }
+        return this._request(requestSettings);
+    }
+
     /**
      * Get export of the API with given apiId
      * 
