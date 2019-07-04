@@ -127,6 +127,7 @@ class ManagementApiScript {
             .alias('h', 'help')
             .version(false)
             .wrap(null)
+            .strict(true);
             // Add this ManagementApi script options
         Object.keys(this.options).forEach(optionKey => {
             this.argv = this.argv.option(optionKey, this.options[optionKey])
