@@ -156,11 +156,43 @@ class ManagementApi {
             );
     }
 
+    /**
+     * List all Applications
+     *
+     * @param delayPeriod the delay period to apply before emission of an Application (default 50ms)
+     * @return {Observable<any>} an emission of each Application that match with given filters
+     */
+    listApplications(delayPeriod = 50) {
+        const requestSettings = {
+            method: 'get',
+            url: 'applications'
+        };
+        return this._request(requestSettings)
+            .pipe(
+                // Emit each API found
+                flatMap(apps => Rx.from(apps)),
+                // Apply delay between API emission
+                concatMap(app => Rx
+                    .interval(delayPeriod)
+                    .pipe(
+                        take(1),
+                        map(_second => app)
+                    )
+                )
+            );
+    }
+
+    /**
+     * Get quality information about the given API identifier
+     *
+     * @param apiId the API identifier from which getting quality information
+     * @returns {Observable<any>}
+     */
     getQuality(apiId) {
         const requestSettings = {
             method: 'get',
             url: util.format('apis/%s/quality', apiId)
-        }
+        };
         return this._request(requestSettings);
     }
 
@@ -174,7 +206,7 @@ class ManagementApi {
         const requestSettings = {
             method: 'get',
             url: util.format('apis/%s/export', apiId)
-        }
+        };
         if (exclude) {
             requestSettings.params = {
                 exclude: exclude
@@ -214,7 +246,7 @@ class ManagementApi {
         const requestSettings = {
             method: 'post',
             url: util.format('apis/%s/deploy', apiId)
-        }
+        };
         return this._request(requestSettings);
     }
 
@@ -258,11 +290,11 @@ ManagementApi.Settings = class {
     constructor(apimUrl) {
         this.apimUrl = apimUrl;
     }
-}
+};
 
 module.exports = {
     Settings: ManagementApi.Settings,
     createInstance: function(settings) {
         return new ManagementApi(settings);
     }
-}
+};
