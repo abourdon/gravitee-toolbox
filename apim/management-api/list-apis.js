@@ -5,8 +5,8 @@ const util = require('util');
 const NO_DELAY_PERIOD = 0;
 
 /**
- * List all registered APIs by displaying their name and context path.
- * 
+ * List all registered APIs by displaying their name, context path, owner name and owner email.
+ *
  * @author Aurelien Bourdon
  */
 class ListApis extends ManagementApiScript {
@@ -57,7 +57,12 @@ class ListApis extends ManagementApiScript {
                 }),
             )
             .subscribe(this.defaultSubscriber(
-                api => this.displayRaw(util.format('%s (%s)', api.name, this.hasDetailsFilters() ? api.proxy.context_path : api.context_path))
+                api => this.displayRaw(util.format('%s (%s, %s <%s>)',
+                    api.name,
+                    this.hasDetailsFilters() ? api.proxy.context_path : api.context_path,
+                    api.owner.displayName,
+                    api.owner.email
+                ))
             ));
     }
 
@@ -65,4 +70,5 @@ class ListApis extends ManagementApiScript {
         return this.argv['filter-by-endpoint-group-name'] || this.argv['filter-by-endpoint-name'] || this.argv['filter-by-endpoint-target'];
     }
 }
+
 new ListApis().run();
