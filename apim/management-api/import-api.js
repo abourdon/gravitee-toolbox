@@ -39,23 +39,23 @@ class ImportApi extends ManagementApiScript {
                     type: 'string',
                     default: 'utf8'
                 },
-                'filter-by-free-text': {
-                    describe: "Filter APIs by a free text (full text search)"
+                'filter-by-name': {
+                    describe: "Filter APIs against their name (insensitive regex)"
                 },
                 'filter-by-context-path': {
-                    describe: "Filter APIs against context-path (regex)",
+                    describe: "Filter APIs against context-path (insensitive regex)",
                     type: 'string'
                 },
                 'filter-by-endpoint-group-name': {
-                    describe: "Filter APIs against endpoint group name (regex)",
+                    describe: "Filter APIs against endpoint group name (insensitive regex)",
                     type: 'string'
                 },
                 'filter-by-endpoint-name': {
-                    describe: "Filter APIs against endpoint name (regex)",
+                    describe: "Filter APIs against endpoint name (insensitive regex)",
                     type: 'string'
                 },
                 'filter-by-endpoint-target': {
-                    describe: "Filter APIs against endpoint target (regex)",
+                    describe: "Filter APIs against endpoint target (insensitive regex)",
                     type: 'string'
                 }
             }
@@ -71,7 +71,7 @@ class ImportApi extends ManagementApiScript {
                     .pipe(
                         map(content => {
                             var apiFilters = {
-                                 byFreeText: this.argv['filter-by-free-text'],
+                                 byName: this.argv['filter-by-name'],
                                  byContextPath: this.argv['filter-by-context-path'],
                                  byEndpointGroupName: this.argv['filter-by-endpoint-group-name'],
                                  byEndpointName: this.argv['filter-by-endpoint-name'],

@@ -1,15 +1,9 @@
+const StringUtils = require('./string-utils');
 const util = require('util')
 const https = require('https')
 const Axios = require('axios')
 const Rx = require('rxjs')
 const { concatMap, filter, flatMap, map, take, tap } = require('rxjs/operators');
-
-/**
- * Numeric value if no result is given when String.search() is applied
- *
- * @type {number}
- */
-const NO_RESULT_ON_STRING_SEARCH = -1;
 
 /**
  * Gravitee.io APIM's Management API client instance.
@@ -71,8 +65,8 @@ class ManagementApi {
      * This listing retrieve APIs basic information. If you need API details or specific filters, prefer using #listApisDetails() instead.
      *
      * Available filters are:
-     * - byName: to search against API name (regular expression)
-     * - byContextPath: to search against context paths (regular expression)
+     * - byName: to search against API name (insensitive regular expression)
+     * - byContextPath: to search against context paths (insensitive regular expression)
      *
      * @param {object} filters an object containing desired filters if necessary
      * @param {number} delayPeriod the delay period to temporize API broadcast (by default 50 milliseconds)
@@ -96,10 +90,10 @@ class ManagementApi {
                 ),
 
                 // Apply filter on name if necessary
-                filter(api => !filters.byName || api.name.search(filters.byName) !== NO_RESULT_ON_STRING_SEARCH),
+                filter(api => !filters.byName || StringUtils.caseInsensitiveMatches(api.name, filters.byName)),
 
                 // Apply filter on context-path if necessary
-                filter(api => !filters.byContextPath || api.context_path.search(filters.byContextPath) !== NO_RESULT_ON_STRING_SEARCH)
+                filter(api => !filters.byContextPath || StringUtils.caseInsensitiveMatches(api.context_path, filters.byContextPath))
             );
     }
 
@@ -109,12 +103,12 @@ class ManagementApi {
      * This listing requires to get API details for each API, through export feature, which is time consuming. If you do not need API details or specific filters, prefer using #listApis() instead.
      * 
      * Available filters are:
-     * - byName: to search against API name (regular expression)
-     * - byContextPath: to search against context paths (regular expression)
-     * - byEndpointGroupName: to search against endpoint group names (regular expression)
-     * - byEndpointName: to search against endpoint name (regular expression)
-     * - byEndpointTarget: to search against endpoint target (regular expression)
-     * - byPlanName: to search against plan name (regular expression)
+     * - byName: to search against API name (insensitive regular expression)
+     * - byContextPath: to search against context paths (insensitive regular expression)
+     * - byEndpointGroupName: to search against endpoint group names (insensitive regular expression)
+     * - byEndpointName: to search against endpoint name (insensitive regular expression)
+     * - byEndpointTarget: to search against endpoint target (insensitive regular expression)
+     * - byPlanName: to search against plan name (insensitive regular expression)
      * 
      * @param {object} filters an object containing desired filters if necessary
      * @param {number} delayPeriod the delay period to temporize API broadcast (by default 50 milliseconds)
@@ -142,7 +136,7 @@ class ManagementApi {
                         return Rx.EMPTY;
                     }
                     return Rx
-                        .from(api.details.proxy.groups.filter(group => group.name.search(filters.byEndpointGroupName) !== NO_RESULT_ON_STRING_SEARCH))
+                        .from(api.details.proxy.groups.filter(group => StringUtils.caseInsensitiveMatches(group.name, filters.byEndpointGroupName)))
                         .pipe(
                             map(() => api)
                         );
@@ -159,8 +153,8 @@ class ManagementApi {
                             flatMap(api => api.details.proxy.groups ? Rx.from(api.details.proxy.groups) : Rx.EMPTY),
                             flatMap(group => group.endpoints ? Rx.from(group.endpoints) : Rx.EMPTY),
                             filter(endpoint => {
-                                const checkEndpointName = !filters.byEndpointName || endpoint.name.search(filters.byEndpointName) !== NO_RESULT_ON_STRING_SEARCH;
-                                const checkEndpointTarget = !filters.byEndpointTarget || endpoint.target.search(filters.byEndpointTarget) !== NO_RESULT_ON_STRING_SEARCH;
+                                const checkEndpointName = !filters.byEndpointName || StringUtils.caseInsensitiveMatches(endpoint.name, filters.byEndpointName);
+                                const checkEndpointTarget = !filters.byEndpointTarget || StringUtils.caseInsensitiveMatches(endpoint.target, filters.byEndpointTarget);
                                 return checkEndpointName && checkEndpointTarget;
                             }),
                             map(() => api)
@@ -176,7 +170,7 @@ class ManagementApi {
                         .of(api)
                         .pipe(
                             flatMap(api => api.details.plans ? Rx.from(api.details.plans) : Rx.EMPTY),
-                            filter(plan => plan.name.search(filters.byPlanName) !== NO_RESULT_ON_STRING_SEARCH),
+                            filter(plan => StringUtils.caseInsensitiveMatches(plan.name, filters.byPlanName)),
                             map(() => api)
                         )
                 })

@@ -1,4 +1,5 @@
 const ManagementApiScript = require('./lib/management-api-script');
+const StringUtils = require('./lib/string-utils');
 const Rx = require('rxjs');
 const { flatMap, map, reduce } = require('rxjs/operators');
 const util = require('util');
@@ -15,22 +16,22 @@ class EnableEndpoints extends ManagementApiScript {
         super(
             'enable-endpoints', {
                 'filter-by-name': {
-                    describe: "Filter APIs against their name (regex)"
+                    describe: "Filter APIs against their name (insensitive regex)"
                 },
                 'filter-by-context-path': {
-                    describe: "Filter APIs against context-path (regex)",
+                    describe: "Filter APIs against context-path (insensitive regex)",
                     type: 'string'
                 },
                 'filter-by-endpoint-group-name': {
-                    describe: "Filter APIs against endpoint group name (regex)",
+                    describe: "Filter APIs against endpoint group name (insensitive regex)",
                     type: 'string'
                 },
                 'filter-by-endpoint-name': {
-                    describe: "Filter APIs against endpoint name (regex)",
+                    describe: "Filter APIs against endpoint name (insensitive regex)",
                     type: 'string'
                 },
                 'filter-by-endpoint-target': {
-                    describe: "Filter APIs against endpoint target (regex)",
+                    describe: "Filter APIs against endpoint target (insensitive regex)",
                     type: 'string'
                 },
                 'action': {
@@ -73,7 +74,7 @@ class EnableEndpoints extends ManagementApiScript {
                 if (!api.details.proxy.groups) {
                     return Rx.empty();
                 }
-                const filteredEndpointGroups = api.details.proxy.groups.filter(group => !this.argv['filter-by-endpoint-group-name'] || group.name.search(this.argv['filter-by-endpoint-group-name']) != -1)
+                const filteredEndpointGroups = api.details.proxy.groups.filter(group => !this.argv['filter-by-endpoint-group-name'] || StringUtils.caseInsensitiveMatches(group.name, this.argv['filter-by-endpoint-group-name']))
                 return Rx
                     .from(filteredEndpointGroups)
                     .pipe(
@@ -92,8 +93,8 @@ class EnableEndpoints extends ManagementApiScript {
                     return Rx.empty();
                 }
                 const filteredEndpoints = apiAndFilteredEndpointGroup.filteredEndpointGroup.endpoints.filter(endpoint => {
-                    const checkByEndpointName = !this.argv['filter-by-endpoint-name'] || endpoint.name.search(this.argv['filter-by-endpoint-name']) !== -1;
-                    const checkByEndpointTarget = !this.argv['filter-by-endpoint-target'] || endpoint.target.search(this.argv['filter-by-endpoint-target']) !== -1;
+                    const checkByEndpointName = !this.argv['filter-by-endpoint-name'] || StringUtils.caseInsensitiveMatches(endpoint.name, this.argv['filter-by-endpoint-name']);
+                    const checkByEndpointTarget = !this.argv['filter-by-endpoint-target'] || StringUtils.caseInsensitiveMatches(endpoint.target, this.argv['filter-by-endpoint-target']);
                     return checkByEndpointName && checkByEndpointTarget;
                 });
                 return Rx
@@ -181,7 +182,7 @@ class EnableEndpoints extends ManagementApiScript {
             .pipe(
                 // Enable/disable endpoint
                 map(apiAndFilteredEndpoint => {
-                    apiAndFilteredEndpoint.filteredEndpoint.backup = this.argv['action'] === 'disable'
+                    apiAndFilteredEndpoint.filteredEndpoint.backup = this.argv['action'] === 'disable';
                     return apiAndFilteredEndpoint;
                 }),
 
