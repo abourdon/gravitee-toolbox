@@ -17,20 +17,21 @@ const criteriaMapping = {
  */
 function convertQualityCriteria(quality) {
     return Object.entries(quality.metrics_passed)
-        .map(([criteriaKey, complied]) => new QualityCriterion(criteriaMapping[criteriaKey], complied));
+        .map(([criteriaKey, complied]) => new QualityCriterion(criteriaMapping[criteriaKey].name, criteriaMapping[criteriaKey].reference, complied));
 }
 
 /**
  * Quality criterion containing name, reference and compliance flag.
  */
 QualityCriterion = class {
-    constructor(criterion, complied) {
-        this.name = criterion.name;
-        this.reference = criterion.reference;
+    constructor(name, reference, complied) {
+        this.name = name;
+        this.reference = reference;
         this.complied = complied;
     }
 }
 
 module.exports = {
-    convertQualityCriteria
+    convertQualityCriteria,
+    QualityCriterion
 }
