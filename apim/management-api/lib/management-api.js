@@ -196,6 +196,14 @@ class ManagementApi {
         return this._request(requestSettings);
     }
 
+    getApiMetadata(apiId) {
+        const requestSettings = {
+            method: 'get',
+            url: util.format('apis/%s/metadata', apiId)
+        }
+        return this._request(requestSettings);
+    }
+
     /**
      * Get export of the API with given apiId
      * 
