@@ -16,27 +16,27 @@ class ListApis extends ManagementApiScript {
             'list-apis',
             {
                 'filter-by-name': {
-                    describe: "Filter APIs against their name (regex)",
+                    describe: "Filter APIs against their name (insensitive regex)",
                     type: 'string'
                 },
                 'filter-by-context-path': {
-                    describe: "Filter APIs against context-path (regex)",
+                    describe: "Filter APIs against context-path (insensitive regex)",
                     type: 'string'
                 },
                 'filter-by-endpoint-group-name': {
-                    describe: "Filter APIs against endpoint group name (regex)",
+                    describe: "Filter APIs against endpoint group name (insensitive regex)",
                     type: 'string'
                 },
                 'filter-by-endpoint-name': {
-                    describe: "Filter APIs against endpoint name (regex)",
+                    describe: "Filter APIs against endpoint name (insensitive regex)",
                     type: 'string'
                 },
                 'filter-by-endpoint-target': {
-                    describe: "Filter APIs against endpoint target (regex)",
+                    describe: "Filter APIs against endpoint target (insensitive regex)",
                     type: 'string'
                 },
                 'filter-by-plan-name': {
-                    describe: "Filter APIs against plan name (regex)",
+                    describe: "Filter APIs against plan name (insensitive regex)",
                     type: 'string'
                 },
             }

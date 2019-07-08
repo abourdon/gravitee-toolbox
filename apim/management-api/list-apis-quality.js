@@ -14,11 +14,11 @@ class ListApisQuality extends ManagementApiScript {
         super(
             'list-apis-quality',
             {
-                'filter-by-free-text': {
-                    describe: "Filter APIs by a free text (full text search)"
+                'filter-by-name': {
+                    describe: "Filter APIs against their name (insensitive regex)"
                 },
                 'filter-by-context-path': {
-                    describe: "Filter APIs against context-path (regex)",
+                    describe: "Filter APIs against context-path (insensitive regex)",
                     type: 'string'
                 },
             }
@@ -30,7 +30,7 @@ class ListApisQuality extends ManagementApiScript {
             .login(this.argv['username'], this.argv['password'])
             .pipe(
                 flatMap(_token => managementApi.listApis({
-                    byFreeText: this.argv['filter-by-free-text'],
+                    byName: this.argv['filter-by-name'],
                     byContextPath: this.argv['filter-by-context-path'],
                 })),
                 flatMap(api => managementApi.getQuality(api.id).pipe(
