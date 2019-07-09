@@ -60,7 +60,7 @@ class EnableEndpoints extends ManagementApiScript {
 
         .pipe(
             // Filter APIs according to given filters
-            flatMap(_token => managementApi.listApis({
+            flatMap(_token => managementApi.listApisDetails({
                 byFreeText: this.argv['filter-by-free-text'],
                 byContextPath: this.argv['filter-by-context-path'],
                 byEndpointGroupName: this.argv['filter-by-endpoint-group-name'],
@@ -70,10 +70,10 @@ class EnableEndpoints extends ManagementApiScript {
 
             // Retrieve matching endpoint groups
             flatMap(api => {
-                if (!api.proxy.groups) {
+                if (!api.details.proxy.groups) {
                     return Rx.empty();
                 }
-                const filteredEndpointGroups = api.proxy.groups.filter(group => !this.argv['filter-by-endpoint-group-name'] || group.name.search(this.argv['filter-by-endpoint-group-name']) != -1)
+                const filteredEndpointGroups = api.details.proxy.groups.filter(group => !this.argv['filter-by-endpoint-group-name'] || group.name.search(this.argv['filter-by-endpoint-group-name']) != -1)
                 return Rx
                     .from(filteredEndpointGroups)
                     .pipe(

@@ -24,7 +24,12 @@ class ListApplications extends ManagementApiScript {
                 flatMap(() => managementApi.listApplications(NO_DELAY_PERIOD))
             )
             .subscribe(this.defaultSubscriber(
-                app => this.displayRaw(util.format('%s (%s <%s>)', app.name, app.owner.displayName, app.owner.email))
+                app => this.displayRaw(util.format('[%s, %s <%s>] %s',
+                    app.id,
+                    app.owner.displayName,
+                    app.owner.email,
+                    app.name
+                ))
             ));
     }
 }
