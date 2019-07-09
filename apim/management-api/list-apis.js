@@ -34,6 +34,10 @@ class ListApis extends ManagementApiScript {
                     describe: "Filter APIs against endpoint target (regex)",
                     type: 'string'
                 },
+                'filter-by-plan-name': {
+                    describe: "Filter APIs against plan name (regex)",
+                    type: 'string'
+                },
             }
         );
     }
@@ -43,31 +47,34 @@ class ListApis extends ManagementApiScript {
             .login(this.argv['username'], this.argv['password'])
             .pipe(
                 flatMap(_token => {
-                    return this.hasDetailsFilters() ?
+                    return this.hasCommonFilters() ?
+                        managementApi.listApis({
+                            byFreeText: this.argv['filter-by-free-text'],
+                            byContextPath: this.argv['filter-by-context-path']
+                        }, NO_DELAY_PERIOD) :
                         managementApi.listApisDetails({
                             byFreeText: this.argv['filter-by-free-text'],
                             byContextPath: this.argv['filter-by-context-path'],
                             byEndpointGroupName: this.argv['filter-by-endpoint-group-name'],
                             byEndpointName: this.argv['filter-by-endpoint-name'],
                             byEndpointTarget: this.argv['filter-by-endpoint-target'],
-                        }) : managementApi.listApis({
-                            byFreeText: this.argv['filter-by-free-text'],
-                            byContextPath: this.argv['filter-by-context-path'],
-                        }, NO_DELAY_PERIOD);
+                            byPlanName: this.argv['filter-by-plan-name']
+                        });
                 }),
             )
             .subscribe(this.defaultSubscriber(
-                api => this.displayRaw(util.format('%s (%s, %s <%s>)',
-                    api.name,
-                    this.hasDetailsFilters() ? api.proxy.context_path : api.context_path,
+                api => this.displayRaw(util.format('[%s, %s, %s <%s>] %s',
+                    api.id,
+                    api.context_path,
                     api.owner.displayName,
-                    api.owner.email
+                    api.owner.email,
+                    api.name
                 ))
             ));
     }
 
-    hasDetailsFilters() {
-        return this.argv['filter-by-endpoint-group-name'] || this.argv['filter-by-endpoint-name'] || this.argv['filter-by-endpoint-target'];
+    hasCommonFilters() {
+        return this.argv['filter-by-free-text'] || this.argv['filter-by-context-path'];
     }
 }
 

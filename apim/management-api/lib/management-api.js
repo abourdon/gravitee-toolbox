@@ -2,7 +2,14 @@ const util = require('util')
 const https = require('https')
 const Axios = require('axios')
 const Rx = require('rxjs')
-const { concatMap, filter, flatMap, map, take, tap } = require('rxjs/operators')
+const { concatMap, filter, flatMap, map, take, tap } = require('rxjs/operators');
+
+/**
+ * Numeric value if no result is given when String.search() is applied
+ *
+ * @type {number}
+ */
+const NO_RESULT_ON_STRING_SEARCH = -1;
 
 /**
  * Gravitee.io APIM's Management API client instance.
@@ -95,7 +102,7 @@ class ManagementApi {
                 ),
 
                 // Apply filter on context-path if necessary
-                filter(api => !filters.byContextPath || api.context_path.search(filters.byContextPath) !== -1)
+                filter(api => !filters.byContextPath || api.context_path.search(filters.byContextPath) !== NO_RESULT_ON_STRING_SEARCH)
             );
     }
 
@@ -110,6 +117,7 @@ class ManagementApi {
      * - byEndpointGroupName: to search against endpoint group names (regular expression)
      * - byEndpointName: to search against endpoint name (regular expression)
      * - byEndpointTarget: to search against endpoint target (regular expression)
+     * - byPlanName: to search against plan name (regular expression)
      * 
      * @param {object} filters an object containing desired filters if necessary
      * @param {number} delayPeriod the delay period to temporize API broadcast (by default 50 milliseconds)
@@ -117,8 +125,16 @@ class ManagementApi {
     listApisDetails(filters = {}, delayPeriod = 50) {
         return this.listApis(filters, delayPeriod)
             .pipe(
-                // Enrich API definition to allow deeper filtering
-                flatMap(api => this.export(api.id)),
+                // Enrich API definition with the API export to allow deeper filtering
+                // API export result will be available through the details attribute
+                flatMap(api => this.export(api.id)
+                    .pipe(
+                        // Add a details attribute that contain API export information
+                        map(apiExport => Object.assign(api, {
+                            details: apiExport
+                        }))
+                    )
+                ),
 
                 // Apply filter on endpoint group attributes if necessary
                 flatMap(api => {
@@ -126,10 +142,10 @@ class ManagementApi {
                         return Rx.of(api);
                     }
                     if (!api.proxy.groups) {
-                        return Rx.empty();
+                        return Rx.EMPTY;
                     }
                     return Rx
-                        .from(api.proxy.groups.filter(group => group.name.search(filters.byEndpointGroupName) !== -1))
+                        .from(api.details.proxy.groups.filter(group => group.name.search(filters.byEndpointGroupName) !== NO_RESULT_ON_STRING_SEARCH))
                         .pipe(
                             map(() => api)
                         );
@@ -143,15 +159,29 @@ class ManagementApi {
                     return Rx
                         .of(api)
                         .pipe(
-                            flatMap(api => api.proxy.groups ? Rx.from(api.proxy.groups) : Rx.empty()),
-                            flatMap(group => group.endpoints ? Rx.from(group.endpoints) : Rx.empty()),
+                            flatMap(api => api.details.proxy.groups ? Rx.from(api.details.proxy.groups) : Rx.EMPTY),
+                            flatMap(group => group.endpoints ? Rx.from(group.endpoints) : Rx.EMPTY),
                             filter(endpoint => {
-                                const checkEndpointName = !filters.byEndpointName || endpoint.name.search(filters.byEndpointName) !== -1;
-                                const checkEndpointTarget = !filters.byEndpointTarget || endpoint.target.search(filters.byEndpointTarget) !== -1;
+                                const checkEndpointName = !filters.byEndpointName || endpoint.name.search(filters.byEndpointName) !== NO_RESULT_ON_STRING_SEARCH;
+                                const checkEndpointTarget = !filters.byEndpointTarget || endpoint.target.search(filters.byEndpointTarget) !== NO_RESULT_ON_STRING_SEARCH;
                                 return checkEndpointName && checkEndpointTarget;
                             }),
                             map(() => api)
                         );
+                }),
+
+                // Apply filter on plans if necessary
+                flatMap(api => {
+                    if (!filters.byPlanName) {
+                        return Rx.of(api);
+                    }
+                    return Rx
+                        .of(api)
+                        .pipe(
+                            flatMap(api => api.details.plans ? Rx.from(api.details.plans) : Rx.EMPTY),
+                            filter(plan => plan.name.search(filters.byPlanName) !== NO_RESULT_ON_STRING_SEARCH),
+                            map(() => api)
+                        )
                 })
             );
     }
