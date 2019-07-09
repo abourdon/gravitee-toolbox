@@ -71,20 +71,14 @@ class ManagementApi {
      * This listing retrieve APIs basic information. If you need API details or specific filters, prefer using #listApisDetails() instead.
      *
      * Available filters are:
-     * - byFreeText: apply a full text search
+     * - byName: to search against API name (regular expression)
      * - byContextPath: to search against context paths (regular expression)
      *
      * @param {object} filters an object containing desired filters if necessary
      * @param {number} delayPeriod the delay period to temporize API broadcast (by default 50 milliseconds)
      */
     listApis(filters = {}, delayPeriod = 50) {
-        const requestSettings = filters.byFreeText ? {
-            method: 'post',
-            url: 'apis/_search',
-            params: {
-                q: filters.byFreeText
-            }
-        } : {
+        const requestSettings = {
             method: 'get',
             url: 'apis'
         };
@@ -101,6 +95,9 @@ class ManagementApi {
                     )
                 ),
 
+                // Apply filter on name if necessary
+                filter(api => !filters.byName || api.name.search(filters.byName) !== NO_RESULT_ON_STRING_SEARCH),
+
                 // Apply filter on context-path if necessary
                 filter(api => !filters.byContextPath || api.context_path.search(filters.byContextPath) !== NO_RESULT_ON_STRING_SEARCH)
             );
@@ -112,7 +109,7 @@ class ManagementApi {
      * This listing requires to get API details for each API, through export feature, which is time consuming. If you do not need API details or specific filters, prefer using #listApis() instead.
      * 
      * Available filters are:
-     * - byFreeText: apply a full text search
+     * - byName: to search against API name (regular expression)
      * - byContextPath: to search against context paths (regular expression)
      * - byEndpointGroupName: to search against endpoint group names (regular expression)
      * - byEndpointName: to search against endpoint name (regular expression)

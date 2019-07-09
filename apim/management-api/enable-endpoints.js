@@ -14,8 +14,8 @@ class EnableEndpoints extends ManagementApiScript {
     constructor() {
         super(
             'enable-endpoints', {
-                'filter-by-free-text': {
-                    describe: "Filter APIs by a free text (full text search)"
+                'filter-by-name': {
+                    describe: "Filter APIs against their name (regex)"
                 },
                 'filter-by-context-path': {
                     describe: "Filter APIs against context-path (regex)",
@@ -61,7 +61,7 @@ class EnableEndpoints extends ManagementApiScript {
         .pipe(
             // Filter APIs according to given filters
             flatMap(_token => managementApi.listApisDetails({
-                byFreeText: this.argv['filter-by-free-text'],
+                byName: this.argv['filter-by-name'],
                 byContextPath: this.argv['filter-by-context-path'],
                 byEndpointGroupName: this.argv['filter-by-endpoint-group-name'],
                 byEndpointName: this.argv['filter-by-endpoint-name'],

@@ -15,8 +15,9 @@ class CountApis extends ManagementApiScript {
         super(
             'count-apis',
             {
-                'filter-by-free-text': {
-                    describe: "Filter APIs by a free text (full text search)"
+                'filter-by-name': {
+                    describe: "Filter APIs against their name (regex)",
+                    type: 'string'
                 },
                 'filter-by-context-path': {
                     describe: "Filter APIs against context-path (regex)",
@@ -45,11 +46,11 @@ class CountApis extends ManagementApiScript {
                 flatMap(_token => {
                     return this.hasCommonFilters() ?
                         managementApi.listApis({
-                            byFreeText: this.argv['filter-by-free-text'],
+                            byName: this.argv['filter-by-name'],
                             byContextPath: this.argv['filter-by-context-path']
                         }, NO_DELAY_PERIOD) :
                         managementApi.listApisDetails({
-                            byFreeText: this.argv['filter-by-free-text'],
+                            byName: this.argv['filter-by-name'],
                             byContextPath: this.argv['filter-by-context-path'],
                             byEndpointGroupName: this.argv['filter-by-endpoint-group-name'],
                             byEndpointName: this.argv['filter-by-endpoint-name'],
@@ -64,7 +65,7 @@ class CountApis extends ManagementApiScript {
     }
 
     hasCommonFilters() {
-        return this.argv['filter-by-free-text'] || this.argv['filter-by-context-path'];
+        return this.argv['filter-by-name'] || this.argv['filter-by-context-path'];
     }
 }
 new CountApis().run();
