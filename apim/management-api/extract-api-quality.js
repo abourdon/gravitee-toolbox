@@ -162,12 +162,17 @@ class ExtractApiQuality extends ManagementApiScript {
             this.validateSupportEmailDefined);
         qualityFunctions.pipe(
             flatMap(qualityFunction => qualityFunction.bind(this)(managementApi)),
-            reduce((acc, criteria) => acc.concat(criteria), [])
+            reduce((acc, criteria) => acc.concat(criteria), []),
+            flatMap(criteria => managementApi.getApi(this.argv['api-id']).pipe(
+                map(api => Object.assign({api: api, criteria: criteria}))
+            ))
         ).subscribe(this.defaultSubscriber(
-             criteria => {
+             apiQuality => {
                  this.displayInfo("CSV content:");
-                 this.displayRaw(Array.from(criteria).reduce((acc, criteria) => acc + criteria.reference + ",", ""));
-                 this.displayRaw(Array.from(criteria).reduce((acc, criteria) => acc + criteria.complied + ",", ""));
+                 this.displayRaw("API id,API name," + Array.from(apiQuality.criteria).reduce((acc, criteria) => acc + criteria.reference + ",", ""));
+                 this.displayRaw(apiQuality.api.id + "," +
+                                 apiQuality.api.name + "," +
+                                 Array.from(apiQuality.criteria).reduce((acc, criteria) => acc + criteria.complied + ",", ""));
              }
          ));
     }
