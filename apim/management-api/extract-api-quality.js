@@ -46,32 +46,46 @@ const matchNamingConvention = function(valueSelector, regex, apiDetail) {
     }
 }
 
-const criterionEvaluators = [
+// Quality criteria definition. Criteria MUST be ordered by reference alphabetical order
+const criteria = {
+    nameNamingConvention: {reference: "DF01", description: "Name's naming convention complied"},
+    versionNamingConvention: {reference: "DF02", description: "Version's naming convention complied"},
+    descriptionMinLength: {reference: "DF03", description: "Description's length higher than " + DESCRIPTION_MIN_LENGTH},
+    labelsDefined: {reference: "DF05", description: "Labels defined"},
+    dataClassificationLabels: {reference: "DF06", description: "Data classification labels complied"},
+    logoDefined: {reference: "DF07", description: "Logo defined"},
+    viewsDefined: {reference: "DF08", description: "Views defined"},
+    functionalDocDefined: {reference: "DF11", description: "Functional documentation defined"},
+    functionalDocHomePage: {reference: "DF13", description: "Functional documentation published as home page"},
+    technicalDocDefined: {reference: "DF14", description: "Technical documentation defined"},
+    supportEmailDefined: {reference: "DF17", description: "Support email address defined"},
+    contextPathNamingConvention: {reference: "DF18", description: "Context-path's naming convention complied"},
+    endpointsNamingConvention: {reference: "DF19", description: "Groups of endpoints and endpoints naming convention complied"},
+    healthCheckActive: {reference: "DF20", description: "Health-check activated"},
+}
+
+// Quality criteria evaluators, used to evaluate quality against the API detail
+const criteriaEvaluators = [
     {
-        name: "Name's naming convention complied",
-        reference: "DF01",
+        criterion: criteria.nameNamingConvention,
         evaluate: matchNamingConvention(api => api.name, API_NAME_REGEX)
     },
     {
-        name: "Version's naming convention complied",
-        reference: "DF02",
+        criterion: criteria.versionNamingConvention,
         evaluate: matchNamingConvention(api => api.version, API_VERSION_REGEX)
     },
     {
-        name: "Description's length is higher than " + DESCRIPTION_MIN_LENGTH,
-        reference: "DF03",
+        criterion: criteria.descriptionMinLength,
         evaluate: api => api.description.length > DESCRIPTION_MIN_LENGTH,
         enabled: script => script.graviteeAutomationOverrideEnabled()
     },
     {
-        name: "Labels defined",
-        reference: "DF05",
+        criterion: criteria.labelsDefined,
         evaluate: api => api.labels !== undefined && api.labels.length > 0,
         enabled: script => script.graviteeAutomationOverrideEnabled()
     },
     {
-        name: "Data classification labels complied",
-        reference: "DF06",
+        criterion: criteria.dataClassificationLabels,
         evaluate: api => [CONFIDENTIALITY_LABEL_REGEX, INTEGRITY_LABEL_REGEX, AVAILABILITY_LABEL_REGEX]
                                     .map(regex => matchNamingConvention(label => label, regex))
                                     .map(regexEvaluator => api.labels !== undefined &&
@@ -79,42 +93,35 @@ const criterionEvaluators = [
                                     .reduce((acc, complied) => acc && complied, true)
     },
     {
-        name: "Logo defined",
-        reference: "DF07",
+        criterion: criteria.logoDefined,
         evaluate: api => api.picture !== undefined && api.picture.length > 0,
         enabled: script => script.graviteeAutomationOverrideEnabled()
     },
     {
-        name: "Views defined",
-        reference: "DF08",
+        criterion: criteria.viewsDefined,
         evaluate: api => api.views !== undefined && api.views.length > 0,
         enabled: script => script.graviteeAutomationOverrideEnabled()
     },
     {
-        name: "Functional documentation defined",
-        reference: "DF11",
+        criterion: criteria.functionalDocDefined,
         evaluate: api => api.pages !== undefined && api.pages.filter(page => page.type === FUNCTIONAL_DOC_TYPE && page.published).length > 0,
         enabled: script => script.graviteeAutomationOverrideEnabled()
     },
     {
-        name: "Functional documentation published as home page",
-        reference: "DF13",
+        criterion: criteria.functionalDocHomePage,
         evaluate: api => api.pages !== undefined && api.pages.filter(page => page.type === FUNCTIONAL_DOC_TYPE && page.published && page.homepage).length > 0
     },
     {
-        name: "Technical documentation defined",
-        reference: "DF14",
+        criterion: criteria.technicalDocDefined,
         evaluate: api => api.pages !== undefined && api.pages.filter(page => page.type === TECHNICAL_DOC_TYPE && page.published).length > 0,
         enabled: script => script.graviteeAutomationOverrideEnabled()
     },
     {
-        name: "Context-path's naming convention complied",
-        reference: "DF18",
+        criterion: criteria.contextPathNamingConvention,
         evaluate: matchNamingConvention(api => api.proxy.context_path, API_CONTEXT_PATH_REGEX)
     },
     {
-        name: "Groups of endpoints and endpoints naming convention complied",
-        reference: "DF19",
+        criterion: criteria.endpointsNamingConvention,
         evaluate: function(api) {
             const nonCompliantEndpoints = api.proxy.groups.filter(group =>
                 group.endpoints !== undefined &&
@@ -123,8 +130,7 @@ const criterionEvaluators = [
         }
     },
     {
-        name: "Health-check activated",
-        reference: "DF20",
+        criterion: criteria.healthCheckActive,
         evaluate: api => api.services !== undefined && api.services["health-check"] !== undefined && api.services["health-check"].enabled,
         enabled: script => script.graviteeAutomationOverrideEnabled()
     },
@@ -142,9 +148,8 @@ class ExtractApiQuality extends ManagementApiScript {
             'extract-api-quality',
             {
                 'api-id': {
-                    describe: "API UUID",
-                    type: 'string',
-                    demandOption: true
+                    describe: "API UUID. If not provided, extract API quality for all APIs",
+                    type: 'string'
                 },
                 'override-gravitee-automation': {
                     describe: "Override Gravitee quality metrics with custom quality rules. This could be useful if Gravitee quality feature is not enabled",
@@ -156,56 +161,71 @@ class ExtractApiQuality extends ManagementApiScript {
     }
 
     definition(managementApi) {
+        const apiIds = this.argv['api-id'] !== undefined
+            ? Rx.of(this.argv['api-id'])
+            : managementApi.login(this.argv['username'], this.argv['password']).pipe(
+                  flatMap(_token => managementApi.listApis().pipe(
+                      map(api => api.id)
+                  ))
+              );
+
         const qualityFunctions = Rx.of(
             this.getGraviteeQuality,
             this.evaluateQualityFromDetail,
             this.validateSupportEmailDefined);
-        qualityFunctions.pipe(
-            flatMap(qualityFunction => qualityFunction.bind(this)(managementApi)),
-            reduce((acc, criteria) => acc.concat(criteria), []),
-            flatMap(criteria => managementApi.getApi(this.argv['api-id']).pipe(
-                map(api => Object.assign({api: api, criteria: criteria}))
-            ))
+        apiIds.pipe(
+            flatMap(apiId => qualityFunctions.pipe(
+                flatMap(qualityFunction => qualityFunction.bind(this)(managementApi, apiId)),
+                reduce((acc, criteria) => acc.concat(criteria), []),
+                map(criteria => criteria.sort((c1, c2) => c1.reference.localeCompare(c2.reference))),
+                flatMap(criteria => managementApi.getApi(apiId).pipe(
+                    map(api => Object.assign({api: api, criteria: criteria}))
+                ))
+            )),
+            reduce((acc, apiQuality) => acc.concat(apiQuality), [])
         ).subscribe(this.defaultSubscriber(
-             apiQuality => {
+             apisQuality => {
                  this.displayInfo("CSV content:");
-                 this.displayRaw("API id,API name," + Array.from(apiQuality.criteria).reduce((acc, criteria) => acc + criteria.reference + ",", ""));
-                 this.displayRaw(apiQuality.api.id + "," +
-                                 apiQuality.api.name + "," +
-                                 Array.from(apiQuality.criteria).reduce((acc, criteria) => acc + criteria.complied + ",", ""));
+                 this.displayRaw("API id,API name," + Object.values(criteria).reduce((acc, criterion) => acc + criterion.reference + ",", ""));
+                 apisQuality.forEach((apiQuality, i) =>
+                     this.displayRaw(apiQuality.api.id + "," +
+                                     apiQuality.api.name + "," +
+                                     Array.from(apiQuality.criteria).reduce((acc, criteria) => acc + criteria.complied + ",", ""))
+                 );
              }
          ));
     }
 
-    getGraviteeQuality(managementApi) {
+    getGraviteeQuality(managementApi, apiId) {
         return this.graviteeAutomationOverrideEnabled() ? Rx.EMPTY :
             managementApi.login(this.argv['username'], this.argv['password']).pipe(
-                flatMap(_token => managementApi.getQuality(this.argv['api-id']).pipe(
+                flatMap(_token => managementApi.getQuality(apiId).pipe(
                     map(quality => convertQualityCriteria(quality))
                 ))
             );
     }
 
-    evaluateQualityFromDetail(managementApi) {
+    evaluateQualityFromDetail(managementApi, apiId) {
         return managementApi
             .login(this.argv['username'], this.argv['password']).pipe(
-                flatMap(_token => managementApi.export(this.argv['api-id']).pipe(
-                    flatMap(apiDetail => Rx.from(criterionEvaluators).pipe(
+                flatMap(_token => managementApi.export(apiId).pipe(
+                    flatMap(apiDetail => Rx.from(criteriaEvaluators).pipe(
                             filter(evaluator => evaluator.enabled === undefined || evaluator.enabled(this)),
-                            map(evaluator => new QualityCriterion(evaluator.name, evaluator.reference, evaluator.evaluate(apiDetail))),
+                            map(evaluator => new QualityCriterion(evaluator.criterion.description, evaluator.criterion.reference, evaluator.evaluate(apiDetail))),
                             reduce((acc, criteria) => acc.concat(criteria), [])
                     ))
                 ))
             );
     }
 
-    validateSupportEmailDefined(managementApi) {
+    validateSupportEmailDefined(managementApi, apiId) {
         return managementApi
             .login(this.argv['username'], this.argv['password']).pipe(
-                flatMap(_token => managementApi.getApiMetadata(this.argv['api-id']).pipe(
+                flatMap(_token => managementApi.getApiMetadata(apiId).pipe(
                     map(metadata => {
                         const complied = metadata.filter(data => data.key === "email-support" && data.value !== undefined && data.value.length > 0).length > 0;
-                        return new QualityCriterion("Support email address defined", "DF17", complied);
+                        const criterion = criteria.supportEmailDefined;
+                        return new QualityCriterion(criterion.description, criterion.reference, complied);
                     })
                 ))
             );
