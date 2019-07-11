@@ -1,7 +1,11 @@
 const ManagementApiScript = require('./lib/management-api-script');
 const { QualityCriterion, convertQualityCriteria } = require('./lib/quality-criteria-converter');
 const Rx = require('rxjs')
-const { flatMap, map, reduce } = require('rxjs/operators');
+const { filter, flatMap, map, reduce } = require('rxjs/operators');
+
+const DESCRIPTION_MIN_LENGTH = 100;
+const FUNCTIONAL_DOC_TYPE = "MARKDOWN";
+const TECHNICAL_DOC_TYPE = "SWAGGER";
 
 /*
  * API name is composed of:
@@ -54,18 +58,54 @@ const criterionEvaluators = [
         evaluate: matchNamingConvention(api => api.version, API_VERSION_REGEX)
     },
     {
+        name: "Description's length is higher than " + DESCRIPTION_MIN_LENGTH,
+        reference: "DF03",
+        evaluate: api => api.description.length > DESCRIPTION_MIN_LENGTH,
+        enabled: script => script.graviteeAutomationOverrideEnabled()
+    },
+    {
+        name: "Labels defined",
+        reference: "DF05",
+        evaluate: api => api.labels !== undefined && api.labels.length > 0,
+        enabled: script => script.graviteeAutomationOverrideEnabled()
+    },
+    {
         name: "Data classification labels complied",
         reference: "DF06",
-        evaluate: apiDetail => [CONFIDENTIALITY_LABEL_REGEX, INTEGRITY_LABEL_REGEX, AVAILABILITY_LABEL_REGEX]
+        evaluate: api => [CONFIDENTIALITY_LABEL_REGEX, INTEGRITY_LABEL_REGEX, AVAILABILITY_LABEL_REGEX]
                                     .map(regex => matchNamingConvention(label => label, regex))
-                                    .map(regexEvaluator => apiDetail.labels !== undefined &&
-                                                           apiDetail.labels.filter(label => regexEvaluator(label)).length == 1)
+                                    .map(regexEvaluator => api.labels !== undefined &&
+                                                           api.labels.filter(label => regexEvaluator(label)).length == 1)
                                     .reduce((acc, complied) => acc && complied, true)
+    },
+    {
+        name: "Logo defined",
+        reference: "DF07",
+        evaluate: api => api.picture !== undefined && api.picture.length > 0,
+        enabled: script => script.graviteeAutomationOverrideEnabled()
+    },
+    {
+        name: "Views defined",
+        reference: "DF08",
+        evaluate: api => api.views !== undefined && api.views.length > 0,
+        enabled: script => script.graviteeAutomationOverrideEnabled()
+    },
+    {
+        name: "Functional documentation defined",
+        reference: "DF11",
+        evaluate: api => api.pages !== undefined && api.pages.filter(page => page.type === FUNCTIONAL_DOC_TYPE && page.published).length > 0,
+        enabled: script => script.graviteeAutomationOverrideEnabled()
     },
     {
         name: "Functional documentation published as home page",
         reference: "DF13",
-        evaluate: apiDetail => apiDetail.pages.filter(page => page.type === "MARKDOWN" && page.published && page.homepage).length > 0
+        evaluate: api => api.pages !== undefined && api.pages.filter(page => page.type === FUNCTIONAL_DOC_TYPE && page.published && page.homepage).length > 0
+    },
+    {
+        name: "Technical documentation defined",
+        reference: "DF14",
+        evaluate: api => api.pages !== undefined && api.pages.filter(page => page.type === TECHNICAL_DOC_TYPE && page.published).length > 0,
+        enabled: script => script.graviteeAutomationOverrideEnabled()
     },
     {
         name: "Context-path's naming convention complied",
@@ -75,12 +115,18 @@ const criterionEvaluators = [
     {
         name: "Groups of endpoints and endpoints naming convention complied",
         reference: "DF19",
-        evaluate: function(apiDetail) {
-            const nonCompliantEndpoints = apiDetail.proxy.groups.filter(group =>
+        evaluate: function(api) {
+            const nonCompliantEndpoints = api.proxy.groups.filter(group =>
                 group.endpoints !== undefined &&
                 group.endpoints.filter(endpoint => !endpoint.name.startsWith(group.name + " - ")).length > 0);
             return nonCompliantEndpoints == null || nonCompliantEndpoints.length == 0;
         }
+    },
+    {
+        name: "Health-check activated",
+        reference: "DF20",
+        evaluate: api => api.services !== undefined && api.services["health-check"] !== undefined && api.services["health-check"].enabled,
+        enabled: script => script.graviteeAutomationOverrideEnabled()
     },
 ];
 
@@ -100,6 +146,11 @@ class ExtractApiQuality extends ManagementApiScript {
                     type: 'string',
                     demandOption: true
                 },
+                'override-gravitee-automation': {
+                    describe: "Override Gravitee quality metrics with custom quality rules. This could be useful if Gravitee quality feature is not enabled",
+                    type: 'boolean',
+                    default: false
+                }
             }
         );
     }
@@ -122,8 +173,8 @@ class ExtractApiQuality extends ManagementApiScript {
     }
 
     getGraviteeQuality(managementApi) {
-        return managementApi
-            .login(this.argv['username'], this.argv['password']).pipe(
+        return this.graviteeAutomationOverrideEnabled() ? Rx.EMPTY :
+            managementApi.login(this.argv['username'], this.argv['password']).pipe(
                 flatMap(_token => managementApi.getQuality(this.argv['api-id']).pipe(
                     map(quality => convertQualityCriteria(quality))
                 ))
@@ -135,6 +186,7 @@ class ExtractApiQuality extends ManagementApiScript {
             .login(this.argv['username'], this.argv['password']).pipe(
                 flatMap(_token => managementApi.export(this.argv['api-id']).pipe(
                     flatMap(apiDetail => Rx.from(criterionEvaluators).pipe(
+                            filter(evaluator => evaluator.enabled === undefined || evaluator.enabled(this)),
                             map(evaluator => new QualityCriterion(evaluator.name, evaluator.reference, evaluator.evaluate(apiDetail))),
                             reduce((acc, criteria) => acc.concat(criteria), [])
                     ))
@@ -152,6 +204,10 @@ class ExtractApiQuality extends ManagementApiScript {
                     })
                 ))
             );
+    }
+
+    graviteeAutomationOverrideEnabled() {
+        return this.argv['override-gravitee-automation'];
     }
 
 }
