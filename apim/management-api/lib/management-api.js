@@ -204,6 +204,20 @@ class ManagementApi {
     }
 
     /**
+     * Get API information.
+     *
+     * @param {string} apiId the API identifier from which getting information
+     * @returns {Observable<any>}
+     */
+    getApi(apiId) {
+        const requestSettings = {
+            method: 'get',
+            url: util.format('apis/%s', apiId)
+        };
+        return this._request(requestSettings);
+    }
+
+    /**
      * Get quality information about the given API identifier
      *
      * @param apiId the API identifier from which getting quality information
@@ -217,6 +231,12 @@ class ManagementApi {
         return this._request(requestSettings);
     }
 
+    /**
+     * Get API metadata.
+     *
+     * @param apiId the API identifier from which getting metadata
+     * @returns {Observable<any>}
+     */
     getApiMetadata(apiId) {
         const requestSettings = {
             method: 'get',
