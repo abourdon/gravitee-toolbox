@@ -35,11 +35,54 @@ const CONFIDENTIALITY_LABEL_REGEX = /^C[0-3]$/;
 const INTEGRITY_LABEL_REGEX = /^I[1-3]$/;
 const AVAILABILITY_LABEL_REGEX = /^A[1-3]$/;
 
-const namingConventionCriteria = {
-    "name": {name: "Name's naming convention complied", reference: "DF01", regex: API_NAME_REGEX},
-    "version": {name: "Version's naming convention complied", reference: "DF02", regex: API_VERSION_REGEX},
-    "context-path": {name: "Context-path's naming convention complied", reference: "DF18", regex: API_CONTEXT_PATH_REGEX},
-};
+const matchNamingConvention = function(valueSelector, regex, apiDetail) {
+    return apiDetail => {
+        const matches = valueSelector(apiDetail).match(regex);
+        return matches != null && matches.length > 0;
+    }
+}
+
+const criterionEvaluators = [
+    {
+        name: "Name's naming convention complied",
+        reference: "DF01",
+        evaluate: matchNamingConvention(api => api.name, API_NAME_REGEX)
+    },
+    {
+        name: "Version's naming convention complied",
+        reference: "DF02",
+        evaluate: matchNamingConvention(api => api.version, API_VERSION_REGEX)
+    },
+    {
+        name: "Data classification labels complied",
+        reference: "DF06",
+        evaluate: apiDetail => [CONFIDENTIALITY_LABEL_REGEX, INTEGRITY_LABEL_REGEX, AVAILABILITY_LABEL_REGEX]
+                                    .map(regex => matchNamingConvention(label => label, regex))
+                                    .map(regexEvaluator => apiDetail.labels !== undefined &&
+                                                           apiDetail.labels.filter(label => regexEvaluator(label)).length == 1)
+                                    .reduce((acc, complied) => acc && complied, true)
+    },
+    {
+        name: "Functional documentation published as home page",
+        reference: "DF13",
+        evaluate: apiDetail => apiDetail.pages.filter(page => page.type === "MARKDOWN" && page.published && page.homepage).length > 0
+    },
+    {
+        name: "Context-path's naming convention complied",
+        reference: "DF18",
+        evaluate: matchNamingConvention(api => api.proxy.context_path, API_CONTEXT_PATH_REGEX)
+    },
+    {
+        name: "Groups of endpoints and endpoints naming convention complied",
+        reference: "DF19",
+        evaluate: function(apiDetail) {
+            const nonCompliantEndpoints = apiDetail.proxy.groups.filter(group =>
+                group.endpoints !== undefined &&
+                group.endpoints.filter(endpoint => !endpoint.name.startsWith(group.name + " - ")).length > 0);
+            return nonCompliantEndpoints == null || nonCompliantEndpoints.length == 0;
+        }
+    },
+];
 
 /**
  * Extract quality criteria compliance corresponding to an API as a CSV content.
@@ -64,7 +107,7 @@ class ExtractApiQuality extends ManagementApiScript {
     definition(managementApi) {
         const qualityFunctions = Rx.of(
             this.getGraviteeQuality,
-            this.calculateQualityFromDetail,
+            this.evaluateQualityFromDetail,
             this.validateSupportEmailDefined);
         qualityFunctions.pipe(
             flatMap(qualityFunction => qualityFunction.bind(this)(managementApi)),
@@ -87,23 +130,14 @@ class ExtractApiQuality extends ManagementApiScript {
             );
     }
 
-    calculateQualityFromDetail(managementApi) {
+    evaluateQualityFromDetail(managementApi) {
         return managementApi
             .login(this.argv['username'], this.argv['password']).pipe(
                 flatMap(_token => managementApi.export(this.argv['api-id']).pipe(
-                    flatMap(apiDetail => {
-                        const detailQualityFunctions = Rx.of(
-                            this.complyWithApiNameNamingConvention,
-                            this.complyWithApiVersionNamingConvention,
-                            this.complyWithApiContextPathNamingConvention,
-                            this.complyWithEndpointsNamingConvention,
-                            this.complyWithDataClassificationLabelsDefinition,
-                            this.complyWithPublishedFunctionalDocAsHomePage);
-                        return detailQualityFunctions.pipe(
-                            map(qualityFunction => qualityFunction.bind(this)(apiDetail)),
+                    flatMap(apiDetail => Rx.from(criterionEvaluators).pipe(
+                            map(evaluator => new QualityCriterion(evaluator.name, evaluator.reference, evaluator.evaluate(apiDetail))),
                             reduce((acc, criteria) => acc.concat(criteria), [])
-                        );
-                    })
+                    ))
                 ))
             );
     }
@@ -118,54 +152,6 @@ class ExtractApiQuality extends ManagementApiScript {
                     })
                 ))
             );
-    }
-
-    complyWithApiNameNamingConvention(apiDetail) {
-        return this.complyWithNamingConvention(apiDetail.name, namingConventionCriteria.name);
-    }
-
-    complyWithApiVersionNamingConvention(apiDetail) {
-        return this.complyWithNamingConvention(apiDetail.version, namingConventionCriteria.version);
-    }
-
-    complyWithApiContextPathNamingConvention(apiDetail) {
-        return this.complyWithNamingConvention(apiDetail.proxy.context_path, namingConventionCriteria["context-path"]);
-    }
-
-    complyWithNamingConvention(value, namingConventionCriterion) {
-        return new QualityCriterion(
-            namingConventionCriterion.name,
-            namingConventionCriterion.reference,
-            this.matchNamingConvention(value, namingConventionCriterion.regex));
-    }
-
-    complyWithEndpointsNamingConvention(apiDetail) {
-        const nonCompliantEndpoints = apiDetail.proxy.groups.filter(group =>
-            group.endpoints !== undefined &&
-            group.endpoints.filter(endpoint => !endpoint.name.startsWith(group.name + " - ")).length > 0);
-        const complied = nonCompliantEndpoints == null || nonCompliantEndpoints.length == 0;
-        return new QualityCriterion("Groups of endpoints and endpoints naming convention complied", "DF19", complied);
-    }
-
-    matchNamingConvention(value, regex) {
-        const matches = value.match(regex);
-        return matches != null && matches.length > 0;
-    }
-
-    complyWithDataClassificationLabelsDefinition(apiDetail) {
-        const hasConfidentialityLabel = this.hasExactlyOneComplyingLabel(apiDetail.labels, CONFIDENTIALITY_LABEL_REGEX);
-        const hasIntegrityLabel = this.hasExactlyOneComplyingLabel(apiDetail.labels, INTEGRITY_LABEL_REGEX);
-        const hasAvailabilityLabel = this.hasExactlyOneComplyingLabel(apiDetail.labels, AVAILABILITY_LABEL_REGEX);
-        return new QualityCriterion("Data classification labels complied", "DF06", hasConfidentialityLabel && hasIntegrityLabel && hasAvailabilityLabel);
-    }
-
-    hasExactlyOneComplyingLabel(labels, regex) {
-        return labels !== undefined && labels.filter(label => this.matchNamingConvention(label, regex)).length == 1;
-    }
-
-    complyWithPublishedFunctionalDocAsHomePage(apiDetail) {
-        const complied = apiDetail.pages.filter(page => page.type === "MARKDOWN" && page.published && page.homepage).length > 0;
-        return new QualityCriterion("Functional documentation published as home page", "DF13", complied);
     }
 
 }
