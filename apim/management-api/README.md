@@ -40,12 +40,14 @@ $ node <script>.js -h
 ## Script list
 
 Here are existing scripts :
-- `enable-endpoints.js` : Enable (or disable) API endpoints based on user predicate
-- `import-api.js` : Import existing API (update) depending a search. Import only if search returns exactly one result. 
-- `list-apis.js` : List all registered APIs by displaying their name and context path.
-- `list-apis-quality.js` : List all registered APIs by displaying their name, context path and quality.
-- `count-apis.js`: Count the number of APIs based on user search predicate.
-- `extract-api-quality.js` : Extract API quality compliance as CSV content.
+- [`count-apis.js`](./count-apis.js): Count the number of APIs based on user search predicate.
+- [`enable-endpoints.js`](./enable-endpoints.js) : Enable (or disable) API endpoints based on user predicate.
+- [`extract-api-quality.js`](./extract-api-quality.js) : Extract API quality compliance as CSV content.
+- [`import-api.js`](./import-api.js) : Import existing API (update) depending a search. Import only if search returns exactly one result. 
+- [`list-apis.js`](./list-apis.js) : List all registered APIs by displaying their name and context path.
+- [`list-apis-quality.js`](./list-apis-quality.js) : List all registered APIs by displaying their name, context path and quality.
+- [`list-applications.js`](./list-applications.js) : List all registered Applications by displaying their name, context path and quality.
+- [`list-labels.js`](./list-labels.js) : List labels defined on APIs.
 
 ## Script example
 
@@ -54,9 +56,11 @@ const ManagementApiScript = require('./lib/management-api-script');
 const { flatMap } = require('rxjs/operators');
 const util = require('util');
 
+const NO_DELAY_PERIOD = 0;
+
 /**
- * List all registered APIs by displaying their name and context path.
- * 
+ * List all registered APIs by displaying their name, context path, owner name and owner email.
+ *
  * @author Aurelien Bourdon
  */
 class ListApis extends ManagementApiScript {
@@ -65,23 +69,28 @@ class ListApis extends ManagementApiScript {
         super(
             'list-apis',
             {
-                'filter-by-free-text': {
-                    describe: "Filter APIs by a free text (full text search)"
+                'filter-by-name': {
+                    describe: "Filter APIs against their name (insensitive regex)",
+                    type: 'string'
                 },
                 'filter-by-context-path': {
-                    describe: "Filter APIs against context-path (regex)",
+                    describe: "Filter APIs against context-path (insensitive regex)",
                     type: 'string'
                 },
                 'filter-by-endpoint-group-name': {
-                    describe: "Filter APIs against endpoint group name (regex)",
+                    describe: "Filter APIs against endpoint group name (insensitive regex)",
                     type: 'string'
                 },
                 'filter-by-endpoint-name': {
-                    describe: "Filter APIs against endpoint name (regex)",
+                    describe: "Filter APIs against endpoint name (insensitive regex)",
                     type: 'string'
                 },
                 'filter-by-endpoint-target': {
-                    describe: "Filter APIs against endpoint target (regex)",
+                    describe: "Filter APIs against endpoint target (insensitive regex)",
+                    type: 'string'
+                },
+                'filter-by-plan-name': {
+                    describe: "Filter APIs against plan name (insensitive regex)",
                     type: 'string'
                 },
             }
@@ -92,22 +101,41 @@ class ListApis extends ManagementApiScript {
         managementApi
             .login(this.argv['username'], this.argv['password'])
             .pipe(
-                flatMap(_token => managementApi.listApis({
-                    byFreeText: this.argv['filter-by-free-text'],
-                    byContextPath: this.argv['filter-by-context-path'],
-                    byEndpointGroupName: this.argv['filter-by-endpoint-group-name'],
-                    byEndpointName: this.argv['filter-by-endpoint-name'],
-                    byEndpointTarget: this.argv['filter-by-endpoint-target'],
-                }))
+                flatMap(_token => {
+                    return this.hasCommonFilters() ?
+                        managementApi.listApis({
+                            byName: this.argv['filter-by-name'],
+                            byContextPath: this.argv['filter-by-context-path']
+                        }, NO_DELAY_PERIOD) :
+                        managementApi.listApisDetails({
+                            byName: this.argv['filter-by-name'],
+                            byContextPath: this.argv['filter-by-context-path'],
+                            byEndpointGroupName: this.argv['filter-by-endpoint-group-name'],
+                            byEndpointName: this.argv['filter-by-endpoint-name'],
+                            byEndpointTarget: this.argv['filter-by-endpoint-target'],
+                            byPlanName: this.argv['filter-by-plan-name']
+                        });
+                }),
             )
             .subscribe(this.defaultSubscriber(
-                api => this.displayRaw(util.format('%s (%s)', api.name, api.proxy.context_path))
+                api => this.displayRaw(util.format('[%s, %s, %s <%s>] %s',
+                    api.id,
+                    api.context_path,
+                    api.owner.displayName,
+                    api.owner.email,
+                    api.name
+                ))
             ));
     }
+
+    hasCommonFilters() {
+        return this.argv['filter-by-name'] || this.argv['filter-by-context-path'];
+    }
 }
+
 new ListApis().run();
 ```
 
 ## Add your own script
 
-All the technical stuff is handled by the [`Script`](./lib/management-api-script.js) class. Then to add your own script, you just have to inherit from it and only define the specific part of your script (i.e., its name and process definition by overridding the associated methods as shown above).
+All the technical stuff is handled by the [`ManagementApiScript`](./lib/management-api-script.js) class. Then to add your own script, you just have to inherit from it and only define the specific part of your script (i.e., its name and process definition by overridding the associated methods as shown above).
