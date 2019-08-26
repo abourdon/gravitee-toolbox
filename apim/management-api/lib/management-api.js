@@ -3,7 +3,7 @@ const util = require('util')
 const https = require('https')
 const Axios = require('axios')
 const Rx = require('rxjs')
-const { concatMap, filter, flatMap, map, take, tap } = require('rxjs/operators');
+const { concatMap, expand, filter, flatMap, map, reduce, take, tap } = require('rxjs/operators');
 
 /**
  * Gravitee.io APIM's Management API client instance.
@@ -301,6 +301,20 @@ class ManagementApi {
     }
 
     /**
+     * Get application information.
+     *
+     * @param {string} applicationId the application identifier from which getting information
+     * @returns {Observable<any>}
+     */
+    getApplication(applicationId) {
+        const requestSettings = {
+            method: 'get',
+            url: util.format('applications/%s', applicationId)
+        };
+        return this._request(requestSettings);
+    }
+
+    /**
      * Updates API identified by the given API identifier.
      *
      * @param {object} api the API definition to update
@@ -335,6 +349,54 @@ class ManagementApi {
             url: util.format('apis/%s/deploy', apiId)
         };
         return this._request(requestSettings);
+    }
+
+    /**
+     * List users from LDAP source.
+     *
+     * @param {number} pageNumber current page number.
+     * @param {number} pageSize page size.
+     */
+    listLdapUsers(pageNumber = 1, pageSize = 100) {
+        const requestSettings = {
+            method: 'get',
+            url: util.format('users?page=%d&size=%d', pageNumber, pageSize)
+        };
+        return this._request(requestSettings).pipe(
+            expand(response => {
+                return response.page.current == response.page.total_pages
+                    ? Rx.empty()
+                    : this._request({
+                        method: 'get',
+                        url: util.format('users?page=%d&size=%d', response.page.current + 1, pageSize)
+                    });
+            }),
+            flatMap(response => response.data),
+            filter(user => user.source == 'ldap')
+        );
+    }
+
+    /**
+     * List memberships for user, as a list of elements containing the referenced API or application ID and name.
+     *
+     * @param {string} userId user ID.
+     * @param {string} membership type (either api or application).
+     */
+    listUserMemberships(userId, type) {
+        const requestSettings = {
+            method: 'get',
+            url: util.format('/users/%s/memberships?type=%s', userId, type)
+        };
+        return this._request(requestSettings).pipe(
+            flatMap(response => Rx.from(response.memberships).pipe(
+                filter(membership => response.metadata[membership.reference]),
+                map(membership => Object.assign({
+                    id: membership.reference,
+                    name: response.metadata[membership.reference].name
+                })),
+                reduce((acc, membership) => acc.concat(membership), [])
+            ))
+        );
     }
 
     /**

@@ -48,6 +48,7 @@ Here are existing scripts :
 - [`list-apis.js`](./list-apis.js) : List all registered APIs by displaying their name and context path.
 - [`list-apis-quality.js`](./list-apis-quality.js) : List all registered APIs by displaying their name, context path and quality.
 - [`list-applications.js`](./list-applications.js) : List all registered Applications by displaying their name, context path and quality.
+- [`list-inactive-ldap-users.js`](./list-inactive-ldap-users.js): List inactive LDAP users.
 - [`list-labels.js`](./list-labels.js) : List labels defined on APIs.
 
 ## Script example
