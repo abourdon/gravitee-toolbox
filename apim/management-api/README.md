@@ -43,7 +43,8 @@ Here are existing scripts :
 - [`count-apis.js`](./count-apis.js): Count the number of APIs based on user search predicate.
 - [`enable-endpoints.js`](./enable-endpoints.js) : Enable (or disable) API endpoints based on user predicate.
 - [`extract-api-quality.js`](./extract-api-quality.js) : Extract API quality compliance as CSV content.
-- [`import-api.js`](./import-api.js) : Import existing API (update) depending a search. Import only if search returns exactly one result. 
+- [`import-api.js`](./import-api.js) : Import existing API (update) depending a search. Import only if search returns exactly one result.
+- [`list-activated-logs-apis.js](./list-activated-logs-apis.js) : List all APIs with activated detailed logs. 
 - [`list-apis.js`](./list-apis.js) : List all registered APIs by displaying their name and context path.
 - [`list-apis-quality.js`](./list-apis-quality.js) : List all registered APIs by displaying their name, context path and quality.
 - [`list-applications.js`](./list-applications.js) : List all registered Applications by displaying their name, context path and quality.
