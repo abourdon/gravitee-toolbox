@@ -218,6 +218,20 @@ class ManagementApi {
     }
 
     /**
+     * Get API state.
+     *
+     * @param {string} apiId the API identifier from which getting state
+     * @returns {Observable<any>}
+     */
+    getApiState(apiId) {
+        const requestSettings = {
+            method: 'get',
+            url: util.format('apis/%s/state', apiId)
+        };
+        return this._request(requestSettings);
+    }
+
+    /**
      * Get quality information about the given API identifier
      *
      * @param apiId the API identifier from which getting quality information
@@ -283,6 +297,30 @@ class ManagementApi {
             data: api
         };
         requestSettings.url = apiId ? util.format('apis/%s/import', apiId) : 'apis/import';
+        return this._request(requestSettings);
+    }
+
+    /**
+     * Updates API identified by the given API identifier.
+     *
+     * @param {object} api the API definition to update
+     * @param {string} apiId identifier of the API to update
+     */
+    update(api, apiId) {
+        var data = Object.assign(api);
+        delete data.id;
+        delete data.state;
+        delete data.context_path;
+        delete data.deployed_at;
+        delete data.created_at;
+        delete data.updated_at;
+        delete data.owner;
+        delete data.picture_url;
+        const requestSettings = {
+            method: 'put',
+            data: data,
+            url: util.format('apis/%s', apiId)
+        };
         return this._request(requestSettings);
     }
 
