@@ -80,6 +80,13 @@ class ManagementApi {
             .pipe(
                 // Emit each API found
                 flatMap(apis => Rx.from(apis)),
+
+                // Apply filter on name if necessary
+                filter(api => !filters.byName || StringUtils.caseInsensitiveMatches(api.name, filters.byName)),
+
+                // Apply filter on context-path if necessary
+                filter(api => !filters.byContextPath || StringUtils.caseInsensitiveMatches(api.context_path, filters.byContextPath)),
+
                 // Apply delay between API emission
                 concatMap(api => Rx
                     .interval(delayPeriod)
@@ -87,13 +94,7 @@ class ManagementApi {
                         take(1),
                         map(_second => api)
                     )
-                ),
-
-                // Apply filter on name if necessary
-                filter(api => !filters.byName || StringUtils.caseInsensitiveMatches(api.name, filters.byName)),
-
-                // Apply filter on context-path if necessary
-                filter(api => !filters.byContextPath || StringUtils.caseInsensitiveMatches(api.context_path, filters.byContextPath))
+                )
             );
     }
 
@@ -178,20 +179,29 @@ class ManagementApi {
     }
 
     /**
-     * List all Applications
+     * List all applications according to the optional given filters.
+     * Each matched application is emitted individually, by allowing delay between events according to the given delayPeriod (by default 50 milliseconds) in order to avoid huge flooding in case of high number of applications.
      *
+     * Available filters are:
+     * - byName: to search against application name (insensitive regular expression)
+     *
+     * @param {object} filters an object containing desired filters if necessary
      * @param delayPeriod the delay period to apply before emission of an Application (default 50ms)
      * @return {Observable<any>} an emission of each Application that match with given filters
      */
-    listApplications(delayPeriod = 50) {
+    listApplications(filters = {}, delayPeriod = 50) {
         const requestSettings = {
             method: 'get',
             url: 'applications'
         };
         return this._request(requestSettings)
             .pipe(
-                // Emit each API found
+                // Emit each application found
                 flatMap(apps => Rx.from(apps)),
+
+                // Apply filter on name if necessary
+                filter(app => !filters.byName || StringUtils.caseInsensitiveMatches(app.name, filters.byName)),
+
                 // Apply delay between API emission
                 concatMap(app => Rx
                     .interval(delayPeriod)
@@ -347,6 +357,36 @@ class ManagementApi {
         const requestSettings = {
             method: 'post',
             url: util.format('apis/%s/deploy', apiId)
+        };
+        return this._request(requestSettings);
+    }
+
+    /**
+     * Search users by given search term.
+     *
+     * @param {string} user search term (either its name or LDAP UID)
+     */
+    searchUsers(searchTerm) {
+        const requestSettings = {
+            method: 'get',
+            url: util.format('search/users?q=%s', searchTerm)
+        };
+        return this._request(requestSettings);
+    }
+
+    /**
+     * Transfer ownership of the given element referenced by its id and type (api or application)
+     *
+     * @param {string} api or application ID
+     * @param {string} element type: api or application
+     * @param {string} user reference, retrieved from user search
+     * @param {string} previous owner role: USER or OWNER
+     */
+    transferOwnership(elementId, elementType, reference, oldOwnerRole) {
+        const requestSettings = {
+            method: 'post',
+            url: util.format('%ss/%s/members/transfer_ownership', elementType, elementId),
+            data: {'reference': reference, 'role': oldOwnerRole}
         };
         return this._request(requestSettings);
     }
