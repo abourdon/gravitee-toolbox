@@ -50,6 +50,7 @@ Here are existing scripts :
 - [`list-applications.js`](./list-applications.js) : List all registered Applications by displaying their name, context path and quality.
 - [`list-inactive-ldap-users.js`](./list-inactive-ldap-users.js): List inactive LDAP users.
 - [`list-labels.js`](./list-labels.js) : List labels defined on APIs.
+- [`transfer-ownership.js`](./transfer-ownership.js): Transfer ownership for APIs or applications.
 
 ## Script example
 
