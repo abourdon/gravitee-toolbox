@@ -5,6 +5,8 @@ const Axios = require('axios')
 const Rx = require('rxjs')
 const { concatMap, expand, filter, flatMap, map, reduce, take, tap } = require('rxjs/operators');
 
+const DEFAULT_TIMEOUT = 10000;
+
 /**
  * Gravitee.io APIM's Management API client instance.
  * 
@@ -70,11 +72,13 @@ class ManagementApi {
      *
      * @param {object} filters an object containing desired filters if necessary
      * @param {number} delayPeriod the delay period to temporize API broadcast (by default 50 milliseconds)
+     * @param {number} timeout threshold for request to time out
      */
-    listApis(filters = {}, delayPeriod = 50) {
+    listApis(filters = {}, delayPeriod = 50, timeout = DEFAULT_TIMEOUT) {
         const requestSettings = {
             method: 'get',
-            url: 'apis'
+            url: 'apis',
+            timeout: timeout
         };
         return this._request(requestSettings)
             .pipe(
@@ -113,9 +117,10 @@ class ManagementApi {
      * 
      * @param {object} filters an object containing desired filters if necessary
      * @param {number} delayPeriod the delay period to temporize API broadcast (by default 50 milliseconds)
+     * @param {number} timeout threshold for request to time out
      */
-    listApisDetails(filters = {}, delayPeriod = 50) {
-        return this.listApis(filters, delayPeriod)
+    listApisDetails(filters = {}, delayPeriod = 50, timeout = DEFAULT_TIMEOUT) {
+        return this.listApis(filters, delayPeriod, timeout)
             .pipe(
                 // Enrich API definition with the API export to allow deeper filtering
                 // API export result will be available through the details attribute
@@ -187,12 +192,14 @@ class ManagementApi {
      *
      * @param {object} filters an object containing desired filters if necessary
      * @param delayPeriod the delay period to apply before emission of an Application (default 50ms)
+     * @param {number} timeout threshold for request to time out
      * @return {Observable<any>} an emission of each Application that match with given filters
      */
-    listApplications(filters = {}, delayPeriod = 50) {
+    listApplications(filters = {}, delayPeriod = 50, timeout = DEFAULT_TIMEOUT) {
         const requestSettings = {
             method: 'get',
-            url: 'applications'
+            url: 'applications',
+            timeout: timeout
         };
         return this._request(requestSettings)
             .pipe(
@@ -461,7 +468,7 @@ class ManagementApi {
         }
         // If no timeout is defined then set a default one to 10s
         if (!requestSettings.timeout) {
-            requestSettings.timeout = 10000;
+            requestSettings.timeout = DEFAULT_TIMEOUT;
         }
 
         return Rx.from(Axios.request(requestSettings))
