@@ -164,7 +164,7 @@ class ExtractApiQuality extends ManagementApiScript {
         const apiIds = this.argv['api-id'] !== undefined
             ? Rx.of(this.argv['api-id'])
             : managementApi.login(this.argv['username'], this.argv['password']).pipe(
-                  flatMap(_token => managementApi.listApis().pipe(
+                  flatMap(_token => managementApi.listApis({}, 50, 30000).pipe(
                       map(api => api.id)
                   ))
               );
@@ -198,36 +198,30 @@ class ExtractApiQuality extends ManagementApiScript {
 
     getGraviteeQuality(managementApi, apiId) {
         return this.graviteeAutomationOverrideEnabled() ? Rx.EMPTY :
-            managementApi.login(this.argv['username'], this.argv['password']).pipe(
-                flatMap(_token => managementApi.getQuality(apiId).pipe(
-                    map(quality => convertQualityCriteria(quality))
-                ))
+            managementApi.getQuality(apiId).pipe(
+                map(quality => convertQualityCriteria(quality))
             );
     }
 
     evaluateQualityFromDetail(managementApi, apiId) {
         return managementApi
-            .login(this.argv['username'], this.argv['password']).pipe(
-                flatMap(_token => managementApi.export(apiId).pipe(
-                    flatMap(apiDetail => Rx.from(criteriaEvaluators).pipe(
-                            filter(evaluator => evaluator.enabled === undefined || evaluator.enabled(this)),
-                            map(evaluator => new QualityCriterion(evaluator.criterion.description, evaluator.criterion.reference, evaluator.evaluate(apiDetail))),
-                            reduce((acc, criteria) => acc.concat(criteria), [])
-                    ))
+            .export(apiId).pipe(
+                flatMap(apiDetail => Rx.from(criteriaEvaluators).pipe(
+                        filter(evaluator => evaluator.enabled === undefined || evaluator.enabled(this)),
+                        map(evaluator => new QualityCriterion(evaluator.criterion.description, evaluator.criterion.reference, evaluator.evaluate(apiDetail))),
+                        reduce((acc, criteria) => acc.concat(criteria), [])
                 ))
             );
     }
 
     validateSupportEmailDefined(managementApi, apiId) {
         return managementApi
-            .login(this.argv['username'], this.argv['password']).pipe(
-                flatMap(_token => managementApi.getApiMetadata(apiId).pipe(
-                    map(metadata => {
-                        const complied = metadata.filter(data => data.key === "email-support" && data.value !== undefined && data.value.length > 0).length > 0;
-                        const criterion = criteria.supportEmailDefined;
-                        return new QualityCriterion(criterion.description, criterion.reference, complied);
-                    })
-                ))
+            .getApiMetadata(apiId).pipe(
+                map(metadata => {
+                    const complied = metadata.filter(data => data.key === "email-support" && data.value !== undefined && data.value.length > 0).length > 0;
+                    const criterion = criteria.supportEmailDefined;
+                    return new QualityCriterion(criterion.description, criterion.reference, complied);
+                })
             );
     }
 
