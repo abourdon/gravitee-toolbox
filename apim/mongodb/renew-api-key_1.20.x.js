@@ -29,7 +29,7 @@
 function ApiKeyRenewer(oldApiKey, newApiKey, operator) {
     this.oldApiKey = oldApiKey;
     this.newApiKey = newApiKey;
-    this.username = operator;
+    this.operator = operator;
     this.insertNewApiKeyAuditId = undefined;
     this.revokeOldApiKeyAuditId = undefined;
 
