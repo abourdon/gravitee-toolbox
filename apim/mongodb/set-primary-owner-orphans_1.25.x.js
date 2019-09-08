@@ -10,7 +10,7 @@
  * - primaryOwner the sourceId that will be used as primary owner for any orphan Application
  * - operator the sourceId responsible of the transfer (should be an administrator)
  *
- * Can be executed as the following: mongo [OPTIONS] --eval "const referenceType='api', primaryOwner='foo', operator='bar';" set-primary-owner-orphans_1.25.x.js
+ * Can be executed as the following: mongo [OPTIONS] --eval "var referenceType='api', primaryOwner='foo', operator='bar';" set-primary-owner-orphans_1.25.x.js
  *
  * /!\ Tested with Gravitee v1.25.x /!\
  * /!\ Dump your Mongo database before any operation! /!\
@@ -164,7 +164,7 @@ PrimaryOwnerOrphansSetter.prototype.setPrimaryOwnerToOrphanReference = function 
         // Insert audit associated to primary owner membership insert
         const auditId = ObjectId().valueOf();
         try {
-            let status = db.audits.insertOne({
+            const status = db.audits.insertOne({
                 "_id": auditId,
                 "referenceId": referenceId,
                 "referenceType": this.referenceType.name,
