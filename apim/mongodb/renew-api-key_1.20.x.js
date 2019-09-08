@@ -3,14 +3,14 @@
  *
  * Prerequisites:
  * - Have a valid API key
- * - Have a registered username
+ * - Have a registered user that will act as the operator of the change
  *
  * Mandatory command line arguments:
  * - oldApiKey: the API key to renew
  * - newApiKey: the new API key value to apply for renew
- * - username: the username that will be identified as the owner of changes
+ * - operator: the user that will be identified as the owner of changes
  *
- * Can be executed as the following: mongo [OPTIONS] --eval "var oldApiKey='foo', newApiKey='bar', username='me';" renew-api-key.js
+ * Can be executed as the following: mongo [OPTIONS] --eval "var oldApiKey='foo', newApiKey='bar', operator='me';" renew-api-key_1.20.x.js
  *
  * /!\ Tested with Gravitee v1.20.x /!\
  * /!\ Dump your Mongo database before any operation! /!\
@@ -23,13 +23,13 @@
  *
  * @param oldApiKey the API Key to renew
  * @param newApiKey the API Key value to use for renew
- * @param username the username that will be identified as the operator
+ * @param operator the user that will be identified as the operator
  * @constructor
  */
-function ApiKeyRenewer(oldApiKey, newApiKey, username) {
+function ApiKeyRenewer(oldApiKey, newApiKey, operator) {
     this.oldApiKey = oldApiKey;
     this.newApiKey = newApiKey;
-    this.username = username;
+    this.username = operator;
     this.insertNewApiKeyAuditId = undefined;
     this.revokeOldApiKeyAuditId = undefined;
 
@@ -40,11 +40,14 @@ function ApiKeyRenewer(oldApiKey, newApiKey, username) {
  * Initializes an ApiKeyRenewer
  */
 ApiKeyRenewer.prototype.init = function () {
-    // Set the user
-    this.user = db.users.findOne({'username': this.username});
-    if (!this.user) {
-        error('User "' + this.username + '" cannot be found');
+    // Retrieve the operator identifier
+    const knownOperator = db.users.findOne({'sourceId': this.operator});
+    if (!knownOperator) {
+        error('User "' + this.operator + '" cannot be found');
     }
+    this.operatorId = knownOperator._id;
+
+    // Check if new API key already exists
     if (db.keys.findOne({'_id': this.newApiKey})) {
         error('API key "' + this.newApiKey + '" already exists and cannot be used as a new API key');
     }
@@ -105,7 +108,7 @@ ApiKeyRenewer.prototype.insertNewApiKey = function () {
             "_id": this.insertNewApiKeyAuditId,
             "referenceId": this.subscription.api,
             "referenceType": "API",
-            "user": this.user._id,
+            "user": this.operatorId,
             "event": "APIKEY_RENEWED",
             "properties": {"API_KEY": this.newApiKey},
             "patch": "[{\"op\":\"add\",\"path\":\"/application\",\"value\":\"" + this.subscription.application + "\"},{\"op\":\"add\",\"path\":\"/key\",\"value\":\"" + this.newApiKey + "\"},{\"op\":\"add\",\"path\":\"/plan\",\"value\":\"" + this.subscription.plan + "\"},{\"op\":\"add\",\"path\":\"/revoked\",\"value\":false},{\"op\":\"add\",\"path\":\"/subscription\",\"value\":\"" + this.subscription._id + "\"}]",
@@ -152,7 +155,7 @@ ApiKeyRenewer.prototype.revokeOldApiKey = function () {
             "_id": this.revokeOldApiKeyAuditId,
             "referenceId": this.subscription.api,
             "referenceType": "API",
-            "user": this.user._id,
+            "user": this.operatorId,
             "event": "APIKEY_REVOKED",
             "properties": {"API_KEY": this.oldApiKey},
             "patch": "[{\"op\":\"add\",\"path\":\"/revokedAt\",\"value\":" + this.now.getTime() + "},{\"op\":\"replace\",\"path\":\"/revoked\",\"value\":true}]",
@@ -242,13 +245,13 @@ function info(message) {
  * Check if program arguments are well defined. If not, log error message and quit with error
  *
  * By default, programme arguments are the following:
- * - username
+ * - operator
  * - oldApiKey
  * - newApiKey
  */
 function checkMainArguments() {
-    if (!this.username) {
-        error('"username" parameter is missing');
+    if (!this.operator) {
+        error('"operator" parameter is missing');
     }
 
     if (!this.oldApiKey) {
@@ -265,7 +268,7 @@ function checkMainArguments() {
  */
 function main() {
     checkMainArguments();
-    var apiKeyRenewer = new ApiKeyRenewer(this.oldApiKey, this.newApiKey, this.username);
+    var apiKeyRenewer = new ApiKeyRenewer(this.oldApiKey, this.newApiKey, this.operator);
     apiKeyRenewer.run();
 }
 
