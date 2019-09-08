@@ -5,7 +5,10 @@
  * - sourceId: the source ID (required if email is not specified)
  * - email: the user email (required if sourceId is not specified)
  *
- * Can be executed as the following: mongo [OPTIONS] --eval "var sourceId='admin';" extract-user-traces.js
+ * Can be executed as the following: mongo [OPTIONS] --eval "var sourceId='admin';" extract-user-traces_1.25.x.js
+ *
+ * /!\ Tested with Gravitee v1.25.x /!\
+ * /!\ Dump your Mongo database before any operation! /!\
  *
  * @author Alexandre Carbenay
  */
