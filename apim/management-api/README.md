@@ -44,7 +44,7 @@ Here are existing scripts :
 - [`enable-endpoints.js`](./enable-endpoints.js) : Enable (or disable) API endpoints based on user predicate.
 - [`extract-api-quality.js`](./extract-api-quality.js) : Extract API quality compliance as CSV content.
 - [`import-api.js`](./import-api.js) : Import existing API (update) depending a search. Import only if search returns exactly one result.
-- [`list-activated-logs-apis.js](./list-activated-logs-apis.js) : List all APIs with activated detailed logs. 
+- [`list-activated-logs-apis.js`](./list-activated-logs-apis.js) : List all APIs with activated detailed logs. 
 - [`list-apis.js`](./list-apis.js) : List all registered APIs by displaying their name and context path.
 - [`list-apis-quality.js`](./list-apis-quality.js) : List all registered APIs by displaying their name, context path and quality.
 - [`list-applications.js`](./list-applications.js) : List all registered Applications by displaying their name, context path and quality.
@@ -52,7 +52,7 @@ Here are existing scripts :
 - [`list-labels.js`](./list-labels.js) : List labels defined on APIs.
 - [`transfer-ownership.js`](./transfer-ownership.js): Transfer ownership for APIs or applications.
 
-## Script example
+## Script development example
 
 ```js
 const ManagementApiScript = require('./lib/management-api-script');

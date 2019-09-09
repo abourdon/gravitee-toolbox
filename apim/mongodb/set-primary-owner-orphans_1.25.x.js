@@ -6,9 +6,9 @@
  * - Have a registered sourceId that will be used as the operator who is responsible of changes
  *
  * Mandatory command line arguments:
- * - referenceType the reference type to scan (either 'api' or 'app')
- * - primaryOwner the sourceId that will be used as primary owner for any orphan Application
- * - operator the sourceId responsible of the transfer (should be an administrator)
+ * - referenceType the reference type to scan (either 'api' or 'application')
+ * - primaryOwner the user (sourceId) that will be used as primary owner for any orphan reference
+ * - operator the user (sourceId) responsible of the transfer (should be an administrator)
  *
  * Can be executed as the following: mongo [OPTIONS] --eval "var referenceType='api', primaryOwner='foo', operator='bar';" set-primary-owner-orphans_1.25.x.js
  *
@@ -24,7 +24,7 @@ const REFERENCE_TYPES = {
         name: 'API',
         collection: 'apis'
     },
-    'app': {
+    'application': {
         id: 4,
         name: 'APPLICATION',
         collection: 'applications'
@@ -37,8 +37,8 @@ const PRIMARY_OWNER_MEMBERSHIP_ROLE_PATTERN = /\d:PRIMARY_OWNER/;
  * The OrphanApplicationsSetter is where operation will be done. It owns a set of context variables which are necessary to apply changes
  *
  * @param referenceType the reference type to scan (either 'api' or 'app')
- * @param primaryOwner the username that will be used as primary owner for any orphan Application
- * @param operator the username responsible of the transfer (should be an administrator)
+ * @param primaryOwner the user (sourceId) that will be used as primary owner for any orphan reference
+ * @param operator the user (sourceId) responsible of the transfer (should be an administrator)
  * @constructor
  */
 function PrimaryOwnerOrphansSetter(referenceType, primaryOwner, operator) {
@@ -50,7 +50,7 @@ function PrimaryOwnerOrphansSetter(referenceType, primaryOwner, operator) {
 }
 
 /**
- * Initializes an OrphanApplicationsSetter
+ * Initializes a PrimaryOwnerOrphansSetter
  */
 PrimaryOwnerOrphansSetter.prototype.init = function () {
     // Set the operator identifier
