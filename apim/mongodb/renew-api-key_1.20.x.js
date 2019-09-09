@@ -41,7 +41,7 @@ function ApiKeyRenewer(oldApiKey, newApiKey, operator) {
  */
 ApiKeyRenewer.prototype.init = function () {
     // Retrieve the operator identifier
-    const knownOperator = db.users.findOne({'sourceId': this.operator});
+    const knownOperator = db.users.findOne({'username': this.operator});
     if (!knownOperator) {
         error('User "' + this.operator + '" cannot be found');
     }
