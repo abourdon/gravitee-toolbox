@@ -42,6 +42,7 @@ $ node <script>.js -h
 Here are existing scripts :
 - [`count-apis.js`](./count-apis.js): Count the number of APIs based on user search predicate.
 - [`enable-endpoints.js`](./enable-endpoints.js) : Enable (or disable) API endpoints based on user predicate.
+- [`enable-logs.js`](./enable-logs.js) : Enable (or disable) detailed logs on APIs that match user predicate.
 - [`extract-api-quality.js`](./extract-api-quality.js) : Extract API quality compliance as CSV content.
 - [`import-api.js`](./import-api.js) : Import existing API (update) depending a search. Import only if search returns exactly one result.
 - [`list-activated-logs-apis.js`](./list-activated-logs-apis.js) : List all APIs with activated detailed logs. 
