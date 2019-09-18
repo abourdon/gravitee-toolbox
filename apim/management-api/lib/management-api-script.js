@@ -1,7 +1,8 @@
-const util = require('util')
-const yargs = require('yargs')
-const ManagementApi = require('./management-api')
-const Rx = require('rxjs')
+const util = require('util');
+const readline = require('readline');
+const yargs = require('yargs');
+const ManagementApi = require('./management-api');
+const Rx = require('rxjs');
 
 /**
  * Base type for any Management API script.
@@ -117,6 +118,32 @@ class ManagementApiScript {
     }
 
     /**
+     * Ask user for confirmation before modifying a list of objects concerned by this script
+     *
+     * @param objectsToApprove list of objects that needs user approval before to apply the next function
+     * @param next the next operation that will modify the list of objects
+     * @param end the end operation that will need to apply in case of user cancellation
+     */
+    askForConfirmation(objectsToApprove = [], next = () => {}, end = () => {}) {
+        let question = objectsToApprove.reduce((acc, object) =>
+            acc + util.format("- %s\n", object),
+            "The following objects will be concerned by the operation:\n"
+        );
+        question += util.format('Continue? (y/n) ');
+        const ask = readline.createInterface({
+            input: process.stdin,
+            output: process.stdout
+        });
+        ask.question(question, answer => {
+            // Close user interface
+            ask.close();
+
+            // If user cancels, then abort and call the end given function
+            return answer === 'y' ? next() : end();
+        });
+    }
+
+    /**
      * Initialize this ManagementApi script command line arguments handler 
      */
     _initArgv() {
@@ -142,7 +169,7 @@ class ManagementApiScript {
     run() {
         this._initArgv();
         const managementApi = ManagementApi.createInstance(new ManagementApi.Settings(this.argv['management-api-url']));
-        this.displayInfo("Starting...")
+        this.displayInfo("Starting...");
         this.definition(managementApi);
     }
 
