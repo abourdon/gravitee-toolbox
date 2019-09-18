@@ -1,6 +1,6 @@
 const ManagementApiScript = require('./lib/management-api-script');
 const Rx = require('rxjs');
-const {filter, flatMap, map, tap} = require('rxjs/operators');
+const {filter, flatMap, map, reduce, tap} = require('rxjs/operators');
 const util = require('util');
 
 const LOGGING_CONDITION_KEY = 'condition';
@@ -42,12 +42,21 @@ class EnableLogs extends ManagementApiScript {
                 'logging-condition': {
                     describe: "Condition until logging will be activated (1 hour since now by default)",
                     type: 'string'
+                },
+                'ask-for-approval': {
+                    describe: "Ask for user approval before setting APIs",
+                    type: 'boolean',
+                    default: true
                 }
             }
         );
     }
 
     definition(managementApi) {
+        this.retrieveApis(managementApi);
+    }
+
+    retrieveApis(managementApi) {
         managementApi
             .login(this.argv['username'], this.argv['password'])
             .pipe(
@@ -73,6 +82,32 @@ class EnableLogs extends ManagementApiScript {
                     return true;
                 }),
 
+                // Retrieve all APIs to send only one result
+                reduce(
+                    (acc, api) => acc.concat([api]), []
+                )
+            )
+            .subscribe(
+                apis => {
+                    if (this.argv['ask-for-approval']) {
+                        this.askForConfirmation(
+                            apis.map(api => util.format('API %s (%s, %s)', api.name, api.context_path, api.id)),
+                            this.applyLoggingConfiguration.bind(this, apis, managementApi),
+                            this.handleError.bind(this, 'Aborted.')
+                        );
+                    } else {
+                        this.applyLoggingConfiguration(apis, managementApi);
+                    }
+                },
+                this.handleError.bind(this),
+                _complete => {}
+            )
+        ;
+    }
+
+    applyLoggingConfiguration(apis, managementApi) {
+        Rx.from(apis)
+            .pipe(
                 // Set logging configuration for found APIs
                 tap(api => this.setLoggingConfiguration(api.details)),
 
