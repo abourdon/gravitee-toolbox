@@ -124,7 +124,13 @@ class ManagementApiScript {
      * @param next the next operation that will modify the list of objects
      * @param end the end operation that will need to apply in case of user cancellation
      */
-    askForConfirmation(objectsToApprove = [], next = () => {}, end = () => {}) {
+    askForApproval(objectsToApprove = [], next = () => {}, end = () => {}) {
+        // If no object need to be approved, continue
+        if (!objectsToApprove || objectsToApprove.length === 0) {
+            return next();
+        }
+
+        // If not, ask for approval
         let question = objectsToApprove.reduce((acc, object) =>
             acc + util.format("- %s\n", object),
             "The following objects will be concerned by the operation:\n"

@@ -1,13 +1,13 @@
 const ManagementApiScript = require('./lib/management-api-script');
 const StringUtils = require('./lib/string-utils');
 const Rx = require('rxjs');
-const { flatMap, map, reduce } = require('rxjs/operators');
+const {flatMap, map, reduce} = require('rxjs/operators');
 const util = require('util');
 const readline = require('readline');
 
 /**
  * Enable (or disable) API endpoints based on user predicate
- * 
+ *
  * @author Aurelien Bourdon
  */
 class EnableEndpoints extends ManagementApiScript {
@@ -38,6 +38,11 @@ class EnableEndpoints extends ManagementApiScript {
                     describe: 'The desired action',
                     choices: ['enable', 'disable'],
                     demandOption: true
+                },
+                'ask-for-approval': {
+                    describe: "Ask for user approval before setting endpoints",
+                    type: 'boolean',
+                    default: true
                 }
             }
         );
@@ -51,7 +56,7 @@ class EnableEndpoints extends ManagementApiScript {
 
     /**
      * First step of the script definition: select endpoints according to user predicate
-     * 
+     *
      * @param {object} managementApi the ManagementApi instance from which request for Management API resources
      */
     selectEndpoints(managementApi) {
@@ -59,120 +64,93 @@ class EnableEndpoints extends ManagementApiScript {
         // Login with credentials
             .login(this.argv['username'], this.argv['password'])
 
-        .pipe(
-            // Filter APIs according to given filters
-            flatMap(_token => managementApi.listApisDetails({
-                byName: this.argv['filter-by-name'],
-                byContextPath: this.argv['filter-by-context-path'],
-                byEndpointGroupName: this.argv['filter-by-endpoint-group-name'],
-                byEndpointName: this.argv['filter-by-endpoint-name'],
-                byEndpointTarget: this.argv['filter-by-endpoint-target'],
-            })),
+            .pipe(
+                // Filter APIs according to given filters
+                flatMap(_token => managementApi.listApisDetails({
+                    byName: this.argv['filter-by-name'],
+                    byContextPath: this.argv['filter-by-context-path'],
+                    byEndpointGroupName: this.argv['filter-by-endpoint-group-name'],
+                    byEndpointName: this.argv['filter-by-endpoint-name'],
+                    byEndpointTarget: this.argv['filter-by-endpoint-target'],
+                })),
 
-            // Retrieve matching endpoint groups
-            flatMap(api => {
-                if (!api.details.proxy.groups) {
-                    return Rx.empty();
-                }
-                const filteredEndpointGroups = api.details.proxy.groups.filter(group => !this.argv['filter-by-endpoint-group-name'] || StringUtils.caseInsensitiveMatches(group.name, this.argv['filter-by-endpoint-group-name']))
-                return Rx
-                    .from(filteredEndpointGroups)
-                    .pipe(
-                        map(filteredEndpointGroup => {
-                            return {
-                                api: api,
-                                filteredEndpointGroup: filteredEndpointGroup
-                            }
-                        })
-                    );
-            }),
+                // Retrieve matching endpoint groups
+                flatMap(api => {
+                    if (!api.details.proxy.groups) {
+                        return Rx.EMPTY;
+                    }
+                    const filteredEndpointGroups = api.details.proxy.groups.filter(group => !this.argv['filter-by-endpoint-group-name'] || StringUtils.caseInsensitiveMatches(group.name, this.argv['filter-by-endpoint-group-name']))
+                    return Rx
+                        .from(filteredEndpointGroups)
+                        .pipe(
+                            map(filteredEndpointGroup => {
+                                return {
+                                    api: api,
+                                    filteredEndpointGroup: filteredEndpointGroup
+                                }
+                            })
+                        );
+                }),
 
-            // Retrieve matching endpoints
-            flatMap(apiAndFilteredEndpointGroup => {
-                if (!apiAndFilteredEndpointGroup.filteredEndpointGroup.endpoints) {
-                    return Rx.empty();
-                }
-                const filteredEndpoints = apiAndFilteredEndpointGroup.filteredEndpointGroup.endpoints.filter(endpoint => {
-                    const checkByEndpointName = !this.argv['filter-by-endpoint-name'] || StringUtils.caseInsensitiveMatches(endpoint.name, this.argv['filter-by-endpoint-name']);
-                    const checkByEndpointTarget = !this.argv['filter-by-endpoint-target'] || StringUtils.caseInsensitiveMatches(endpoint.target, this.argv['filter-by-endpoint-target']);
-                    return checkByEndpointName && checkByEndpointTarget;
-                });
-                return Rx
-                    .from(filteredEndpoints)
-                    .pipe(
-                        map(filteredEndpoint => {
-                            return {
-                                api: apiAndFilteredEndpointGroup.api,
-                                filteredGroup: apiAndFilteredEndpointGroup.filteredEndpointGroup,
-                                filteredEndpoint: filteredEndpoint
-                            }
-                        })
-                    );
-            }),
+                // Retrieve matching endpoints
+                flatMap(apiAndFilteredEndpointGroup => {
+                    if (!apiAndFilteredEndpointGroup.filteredEndpointGroup.endpoints) {
+                        return Rx.EMPTY;
+                    }
+                    const filteredEndpoints = apiAndFilteredEndpointGroup.filteredEndpointGroup.endpoints.filter(endpoint => {
+                        const checkByEndpointName = !this.argv['filter-by-endpoint-name'] || StringUtils.caseInsensitiveMatches(endpoint.name, this.argv['filter-by-endpoint-name']);
+                        const checkByEndpointTarget = !this.argv['filter-by-endpoint-target'] || StringUtils.caseInsensitiveMatches(endpoint.target, this.argv['filter-by-endpoint-target']);
+                        return checkByEndpointName && checkByEndpointTarget;
+                    });
+                    return Rx
+                        .from(filteredEndpoints)
+                        .pipe(
+                            map(filteredEndpoint => {
+                                return {
+                                    api: apiAndFilteredEndpointGroup.api,
+                                    filteredGroup: apiAndFilteredEndpointGroup.filteredEndpointGroup,
+                                    filteredEndpoint: filteredEndpoint
+                                }
+                            })
+                        );
+                }),
 
-            // Reduce all result items into a only one
-            reduce(
-                (acc, apiAndFilteredEndpoint) => acc.concat([apiAndFilteredEndpoint]), []
+                // Reduce all result items into a only one
+                reduce(
+                    (acc, apiAndFilteredEndpoint) => acc.concat([apiAndFilteredEndpoint]), []
+                )
             )
-        )
 
-        // Then ask for confirmation
-        .subscribe(
-            apisAndfilteredEndpoints => {
-                if (!apisAndfilteredEndpoints || apisAndfilteredEndpoints.length === 0) {
-                    this.displayRaw('No match found.');
-                    this.displayInfo('Done.')
-                    return;
+            // Then ask for confirmation if necessary and proceed changes
+            .subscribe(
+                apisAndfilteredEndpoints => {
+                    if (this.argv['ask-for-approval']) {
+                        this.askForApproval(
+                            apisAndfilteredEndpoints.map(
+                                apiAndFilteredEndpoint => util.format(
+                                    "Endpoint '%s' of API '%s' (from endpoint group '%s' with target '%s')",
+                                    apiAndFilteredEndpoint.filteredEndpoint.name,
+                                    apiAndFilteredEndpoint.api.name,
+                                    apiAndFilteredEndpoint.filteredGroup.name,
+                                    apiAndFilteredEndpoint.filteredEndpoint.target
+                                )
+                            ),
+                            this.enableOrDisableEndpoints.bind(this, apisAndfilteredEndpoints, managementApi),
+                            this.handleError.bind(this, 'Aborted.')
+                        );
+                    } else {
+                        this.enableOrDisableEndpoints(apisAndfilteredEndpoints, managementApi);
+                    }
+                },
+                this.handleError.bind(this),
+                _complete => {
                 }
-                this.askForConfirmation(apisAndfilteredEndpoints, managementApi);
-            },
-            this.handleError.bind(this),
-            _complete => {}
-        );
-    }
-
-    /**
-     * Second step of the script definition: ask for user confirmation regarding on selected endpoints
-     * 
-     * @param {object} apisAndfilteredEndpoints the list of selected endpoints with their associated APIs
-     * @param {object} managementApi the ManagementApi instance from which request for Management API resources
-     */
-    askForConfirmation(apisAndfilteredEndpoints, managementApi) {
-        var question = apisAndfilteredEndpoints.reduce(
-            (acc, apiAndFilteredEndpoint) =>
-            acc + util.format(
-                "\t- '%s' (API '%s', endpoint group '%s', target '%s')\n",
-                apiAndFilteredEndpoint.filteredEndpoint.name,
-                apiAndFilteredEndpoint.api.name,
-                apiAndFilteredEndpoint.filteredGroup.name,
-                apiAndFilteredEndpoint.filteredEndpoint.target
-            ),
-            "The following endpoints match with predicate:\n"
-        );
-        question += util.format('These endpoints will be %sd. Continue? (y/n) ', this.argv['action']);
-        const ask = readline.createInterface({
-            input: process.stdin,
-            output: process.stdout
-        });
-        ask.question(question, answer => {
-            // Close user interface
-            ask.close();
-
-            // If user cancels, then abort and exit
-            if (answer !== 'y') {
-                this.displayRaw('Aborted.');
-                this.displayInfo('Done.')
-                return;
-            }
-
-            // Else, apply update on filtered endpoints
-            this.enableOrDisableEndpoints(apisAndfilteredEndpoints, managementApi);
-        });
+            );
     }
 
     /**
      * Last step of the script definition: apply update on selected endpoints to enable or disable them
-     * 
+     *
      * @param {object} apisAndfilteredEndpoints the list of selected endpoints with their associated APIs
      * @param {object} managementApi the ManagementApi instance from which request for Management API resources
      */
@@ -188,7 +166,7 @@ class EnableEndpoints extends ManagementApiScript {
 
                 // Finally import API with new endpoint definition (without deploy it)
                 flatMap(apiAndFilteredEndpoint => managementApi
-                    .import(apiAndFilteredEndpoint.api, apiAndFilteredEndpoint.api.id)
+                    .import(apiAndFilteredEndpoint.api.details, apiAndFilteredEndpoint.api.id)
                     .pipe(
                         flatMap(importedApi => managementApi.deploy(importedApi.id)
                             .pipe(
@@ -199,7 +177,7 @@ class EnableEndpoints extends ManagementApiScript {
                 )
             )
             .subscribe(this.defaultSubscriber(apiAndFilteredEndpoint => this.displayRaw(
-                util.format("Operation done for endpoint '%s' (API '%s', endpoint group '%s', target '%s').",
+                util.format("- Operation done for endpoint '%s' (API '%s', endpoint group '%s', target '%s').",
                     apiAndFilteredEndpoint.filteredEndpoint.name,
                     apiAndFilteredEndpoint.api.name,
                     apiAndFilteredEndpoint.filteredGroup.name,
@@ -209,4 +187,5 @@ class EnableEndpoints extends ManagementApiScript {
     }
 
 }
+
 new EnableEndpoints().run();

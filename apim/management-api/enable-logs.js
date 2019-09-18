@@ -90,7 +90,7 @@ class EnableLogs extends ManagementApiScript {
             .subscribe(
                 apis => {
                     if (this.argv['ask-for-approval']) {
-                        this.askForConfirmation(
+                        this.askForApproval(
                             apis.map(api => util.format('API %s (%s, %s)', api.name, api.context_path, api.id)),
                             this.applyLoggingConfiguration.bind(this, apis, managementApi),
                             this.handleError.bind(this, 'Aborted.')
