@@ -182,6 +182,11 @@ class ExtractApiQuality extends ManagementApiScript {
                     describe: "API UUID. If not provided, extract API quality for all APIs",
                     type: 'string'
                 },
+                'delay-period': {
+                    describe: "Delay period to temporize API broadcast",
+                    type: 'number',
+                    default: 200
+                },
                 'override-gravitee-automation': {
                     describe: "Override Gravitee quality metrics with custom quality rules. This could be useful if Gravitee quality feature is not enabled",
                     type: 'boolean',
@@ -223,7 +228,7 @@ class ExtractApiQuality extends ManagementApiScript {
         const apiIds = managementApi.login(this.argv['username'], this.argv['password']).pipe(
                 flatMap(_token => this.argv['api-id'] !== undefined
                     ? Rx.of(this.argv['api-id'])
-                    : managementApi.listApis({}, 150, 30000).pipe(
+                    : managementApi.listApis({}, this.argv['delay-period'], 30000).pipe(
                         map(api => api.id)
                     )
                 )
