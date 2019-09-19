@@ -88,6 +88,7 @@ const CRITERIA = {
     contextPathNamingConvention: {reference: "DF18", description: "Context-path's naming convention complied"},
     endpointsNamingConvention: {reference: "DF19", description: "Groups of endpoints and endpoints naming convention complied"},
     healthCheckActive: {reference: "DF20", description: "Health-check activated"},
+    apiUsage: {reference: "R00", description: "API usage at runtime"},
     responseTimeMedian: {reference: "R01", description: "Median response time"},
     responseTime95Percentile: {reference: "R02", description: "95th percentile response time"},
     errorsRatio: {reference: "R03", description: "Errors ratio"},
@@ -338,8 +339,14 @@ class ExtractApiQuality extends ManagementApiScript {
             'now',
             [["api", apiId]]
         ).pipe(
-            map(esResult => esResult.hits.total == 0 ? 0 : esResult.aggregations.ErrorRatio.buckets.Errors.doc_count / esResult.hits.total),
-            map(ratio => new QualityCriterion(CRITERIA.errorsRatio.description, CRITERIA.errorsRatio.reference, threshold.errorsRatio > ratio))
+            map(esResult => {
+                var total = esResult.hits.total;
+                var ratio = total == 0 ? 0 : esResult.aggregations.ErrorRatio.buckets.Errors.doc_count / total;
+                var criteria = new Array();
+                criteria.push(new QualityCriterion(CRITERIA.apiUsage.description, CRITERIA.apiUsage.reference, total > 0));
+                criteria.push(new QualityCriterion(CRITERIA.errorsRatio.description, CRITERIA.errorsRatio.reference, threshold.errorsRatio > ratio));
+                return criteria;
+            })
         );
     }
 
