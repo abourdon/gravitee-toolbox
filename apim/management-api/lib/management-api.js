@@ -291,6 +291,21 @@ class ManagementApi {
     }
 
     /**
+     * Get API subscriptions.
+     *
+     * @param apiId the API identifier from which getting subscriptions.
+     * @returns {Observable<any>}
+     */
+    getApiSubscriptions(apiId, subscriptionStatus = ['ACCEPTED', 'PENDING', 'PAUSED'], size = 10) {
+        var status = subscriptionStatus.reduce((acc, s) => acc + (acc.length > 0 ? "," : "") + s, "");
+        const requestSettings = {
+            method: 'get',
+            url: util.format('/apis/%s/subscriptions?size=%d&status=%s', apiId, size, status)
+        };
+        return this._request(requestSettings);
+    }
+
+    /**
      * Get export of the API with given apiId
      * 
      * @param {string} apiId to identify the API to export
