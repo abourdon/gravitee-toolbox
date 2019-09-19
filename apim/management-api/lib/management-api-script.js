@@ -35,6 +35,11 @@ class ManagementApiScript {
                 type: 'string',
                 demandOption: true
             },
+            'header': {
+                alias: 'management-api-url-header',
+                describe: 'Optional header to add to access to the Management API base URL. Format: "key:value"',
+                type: 'array'
+            },
             'u': {
                 alias: 'username',
                 describe: 'Username to connect to the Management API',
@@ -174,7 +179,7 @@ class ManagementApiScript {
      */
     run() {
         this._initArgv();
-        const managementApi = ManagementApi.createInstance(new ManagementApi.Settings(this.argv['management-api-url']));
+        const managementApi = ManagementApi.createInstance(new ManagementApi.Settings(this.argv['management-api-url'], this.argv['management-api-url-header']));
         this.displayInfo("Starting...");
         this.definition(managementApi);
     }

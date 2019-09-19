@@ -3,20 +3,21 @@ const util = require('util')
 const https = require('https')
 const Axios = require('axios')
 const Rx = require('rxjs')
-const { concatMap, expand, filter, flatMap, map, reduce, take, tap } = require('rxjs/operators');
+const {concatMap, expand, filter, flatMap, map, reduce, take, tap} = require('rxjs/operators');
 
 const DEFAULT_TIMEOUT = 10000;
+const HEADER_SEPARATOR = ':';
 
 /**
  * Gravitee.io APIM's Management API client instance.
- * 
+ *
  * @author Aurelien Bourdon
  */
 class ManagementApi {
 
     /**
      * Create a new ManagementApi client instance according to the given settings
-     * 
+     *
      * @param {object} managementApiSettings settings of this ManagementApi client instance
      */
     constructor(managementApiSettings) {
@@ -26,7 +27,7 @@ class ManagementApi {
     /**
      * Ask for login, based on the given credentials
      * Once logged the Apim instance's Apim.Settings will be set by the login bearer token
-     * 
+     *
      * @param {string} username the username to login
      * @param {string} password the username's password
      * @returns {Obervable}
@@ -48,7 +49,7 @@ class ManagementApi {
     /**
      * Ask for logout, based on the Apim instance's Apim.Settings.
      * Once logout, then remove the Apim instance's Apim.Settings login bearer token
-     * 
+     *
      * @returns {Observable}
      */
     logout() {
@@ -106,7 +107,7 @@ class ManagementApi {
      * List all APIs according to the optional given filters.
      * Each matched API is emitted individually, by allowing delay between events according to the given delayPeriod (by default 50 milliseconds) in order to avoid huge flooding in case of high number of APIs.
      * This listing requires to get API details for each API, through export feature, which is time consuming. If you do not need API details or specific filters, prefer using #listApis() instead.
-     * 
+     *
      * Available filters are:
      * - byName: to search against API name (insensitive regular expression)
      * - byContextPath: to search against context paths (insensitive regular expression)
@@ -114,7 +115,7 @@ class ManagementApi {
      * - byEndpointName: to search against endpoint name (insensitive regular expression)
      * - byEndpointTarget: to search against endpoint target (insensitive regular expression)
      * - byPlanName: to search against plan name (insensitive regular expression)
-     * 
+     *
      * @param {object} filters an object containing desired filters if necessary
      * @param {number} delayPeriod the delay period to temporize API broadcast (by default 50 milliseconds)
      * @param {number} timeout threshold for request to time out
@@ -307,11 +308,11 @@ class ManagementApi {
 
     /**
      * Get export of the API with given apiId
-     * 
+     *
      * @param {string} apiId to identify the API to export
      * @param {string} exclude list of fields to exclude from export (e.g 'pages,groups')
      */
-    export (apiId, exclude) {
+    export(apiId, exclude) {
         const requestSettings = {
             method: 'get',
             url: util.format('apis/%s/export', apiId)
@@ -333,11 +334,11 @@ class ManagementApi {
 
     /**
      * Create or update the given API definition.
-     * 
+     *
      * @param {object} api the API definition to create or update
      * @param {string} apiId if given then update API with apiId identifier with the given API definition
      */
-    import (api, apiId) {
+    import(api, apiId) {
         const requestSettings = {
             method: 'post',
             data: api
@@ -386,7 +387,7 @@ class ManagementApi {
 
     /**
      * Deploy API identified by the given API identifier
-     * 
+     *
      * @param {string} apiId identifier of the API to deploy
      */
     deploy(apiId) {
@@ -477,24 +478,34 @@ class ManagementApi {
 
     /**
      * Do a request to the Management API
-     * 
+     *
      * @param {object} requestDetails details of the Management API request
      */
     _request(requestDetails) {
+        // Clone the request details to operate over without edge effects
         const requestSettings = Object.assign({}, requestDetails);
-        requestSettings.baseURL = this.settings.apimUrl
-            // If login bearer is present, then add it to the request and eventually remove any configured authorization
+
+        // Set request to access to the Management API
+        requestSettings.baseURL = this.settings.apimUrl;
+
+        // Add optional headers needed to access to the Management API
+        // To do so, recreate headers by first using one in Settings then second by overriding with those given in the current requestDetails
+        const requestHeaders = Object.assign({}, this.settings.apimHeaders);
+        requestSettings.headers = Object.assign(requestHeaders, requestSettings.headers);
+
+        // If login bearer is present, then add it to the request and eventually remove any configured authorization
         if (this.settings.bearer) {
-            requestSettings.headers = Object.assign({}, requestSettings.headers);
             requestSettings.headers.Cookie = util.format('%s=Bearer %s', 'Auth-Graviteeio-APIM', this.settings.bearer);
             delete requestSettings.auth;
         }
+
         // Trust any SSL/TLS HTTP certificate by default
         if (!requestSettings.httpsAgent) {
             requestSettings.httpsAgent = new https.Agent({
                 rejectUnauthorized: false
             })
         }
+
         // If no timeout is defined then set a default one to 10s
         if (!requestSettings.timeout) {
             requestSettings.timeout = DEFAULT_TIMEOUT;
@@ -512,14 +523,25 @@ class ManagementApi {
  * Associated settings to any ManagementAPI instance
  */
 ManagementApi.Settings = class {
-    constructor(apimUrl) {
+
+    constructor(apimUrl, apimHeaders) {
         this.apimUrl = apimUrl;
+        this.apimHeaders = this.formatHeaders(apimHeaders);
     }
+
+    formatHeaders(apimHeaders) {
+        return apimHeaders.reduce((acc, header) => {
+                const [key, value] = header.split(HEADER_SEPARATOR);
+                acc[key] = value;
+                return acc;
+            }, {}
+        );
+    };
 };
 
 module.exports = {
     Settings: ManagementApi.Settings,
-    createInstance: function(settings) {
+    createInstance: function (settings) {
         return new ManagementApi(settings);
     }
 };
