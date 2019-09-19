@@ -58,6 +58,30 @@ class ElasticSearch {
         return this._requestAllPages(requestSettings);
     }
 
+    aggregateHits(indexName, aggregation, from, to = 'now', searchTerms = [], timeKey = "@timestamp") {
+        var terms = Array.from(searchTerms)
+            .map(([key, value]) => ({ "term": { [key]: { "value": value } } }))
+            .reduce((acc, term) => acc.concat(term), []);
+        terms.push({"range":{[timeKey]:{"gte":from,"lte":to}}});
+
+        const requestSettings = {
+            method: 'get',
+            url: util.format('%s/_search', indexName),
+            data: {
+            "size": 0,
+              "query": {
+                "bool": {
+                  "must": [
+                    terms
+                  ]
+                }
+              },
+              "aggs" : aggregation
+            }
+        };
+        return this._request(requestSettings);
+    }
+
     /**
      * Delete document corresponding to the specified id from the specified index and type.
      *
@@ -208,6 +232,9 @@ class ElasticSearch {
  */
 ElasticSearch.Settings = class {
     constructor(esUrl, esHeaders) {
+        if (esUrl === null || esUrl === undefined) {
+            throw new Error('Cannot build ElasticSearch client instance with no URL');
+        }
         this.esUrl = esUrl;
         this.esHeaders = esHeaders;
     }

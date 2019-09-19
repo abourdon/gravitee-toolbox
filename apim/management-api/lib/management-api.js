@@ -272,7 +272,21 @@ class ManagementApi {
         const requestSettings = {
             method: 'get',
             url: util.format('apis/%s/metadata', apiId)
-        }
+        };
+        return this._request(requestSettings);
+    }
+
+    /**
+     * Get API health-check availability.
+     *
+     * @param apiId the API identifier from which getting health-check availability
+     * @returns {Observable<any>}
+     */
+    getApiHealthCheckAvailability(apiId) {
+        const requestSettings = {
+            method: 'get',
+            url: util.format('/apis/%s/health?type=availability', apiId)
+        };
         return this._request(requestSettings);
     }
 
