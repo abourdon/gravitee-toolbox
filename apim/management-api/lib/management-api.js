@@ -524,7 +524,7 @@ class ManagementApi {
  */
 ManagementApi.Settings = class {
 
-    constructor(apimUrl, apimHeaders) {
+    constructor(apimUrl, apimHeaders = []) {
         this.apimUrl = apimUrl;
         this.apimHeaders = this.formatHeaders(apimHeaders);
     }
