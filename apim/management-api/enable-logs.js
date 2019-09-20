@@ -76,7 +76,7 @@ class EnableLogs extends ManagementApiScript {
                 ),
                 filter(api => {
                     if (!api.is_synchronized) {
-                        this.displayRaw(util.format('- API %s (%s) has NOT been set because having ongoing changes that have not been synchronized', api.name, api.id));
+                        this.displayRaw(util.format('API %s (%s) has NOT been set because having ongoing changes that have not been synchronized', api.name, api.id));
                         return false;
                     }
                     return true;
@@ -119,7 +119,7 @@ class EnableLogs extends ManagementApiScript {
                 )
             )
             .subscribe(this.defaultSubscriber(api => {
-                this.displayRaw(util.format('- API %s (%s) has been set', api.name, api.id));
+                this.displayRaw(util.format('API %s (%s) has been set', api.name, api.id));
             }));
     }
 
