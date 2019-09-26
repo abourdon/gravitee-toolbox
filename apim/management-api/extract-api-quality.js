@@ -9,6 +9,12 @@ const DESCRIPTION_MIN_LENGTH = 100;
 const FUNCTIONAL_DOC_TYPE = "MARKDOWN";
 const TECHNICAL_DOC_TYPE = "SWAGGER";
 
+const API_TYPES_VIEW_NAMES = {
+    'system-apis': 'System',
+    'referential-apis': 'Referential',
+    'experience-apis': 'Experience'
+};
+const DEFAULT_API_TYPE = 'System';
 /*
  * API name is composed of:
  * - eventually a namespace (potentially multiple words)
@@ -246,21 +252,27 @@ class ExtractApiQuality extends ManagementApiScript {
                 reduce((acc, criteria) => acc.concat(criteria), []),
                 map(criteria => criteria.sort((c1, c2) => c1.reference.localeCompare(c2.reference))),
                 flatMap(criteria => managementApi.getApi(apiId).pipe(
-                    map(api => Object.assign({api: api, criteria: criteria}))
+                    map(api => Object.assign({api: api, type: this.getApiType(api), criteria: criteria}))
                 ))
             )),
             reduce((acc, apiQuality) => acc.concat(apiQuality), [])
         ).subscribe(this.defaultSubscriber(
              apisQuality => {
                  this.displayInfo("CSV content:");
-                 this.displayRaw("API id,API name," + Object.values(CRITERIA).reduce((acc, criterion) => acc + criterion.reference + ",", ""));
+                 this.displayRaw("API id,API name,API type," + Object.values(CRITERIA).reduce((acc, criterion) => acc + criterion.reference + ",", ""));
                  apisQuality.forEach((apiQuality, i) =>
                      this.displayRaw(apiQuality.api.id + "," +
                                      apiQuality.api.name + "," +
+                                     apiQuality.type + "," +
                                      Array.from(apiQuality.criteria).reduce((acc, criteria) => acc + criteria.complied + ",", ""))
                  );
              }
          ));
+    }
+
+    getApiType(api) {
+        var apiTypes = api.views !== undefined ? api.views.filter(view => Object.keys(API_TYPES_VIEW_NAMES).includes(view)).map(view => API_TYPES_VIEW_NAMES[view]) : [];
+        return apiTypes.length > 0 ? apiTypes[0] : DEFAULT_API_TYPE;
     }
 
     getGraviteeQuality(managementApi, elasticsearch, apiId) {
