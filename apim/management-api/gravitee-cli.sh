@@ -29,7 +29,7 @@ readonly COMMAND_EXTENSION='.js'
 # @param $2 message content
 # @return nothing
 function log {
-    local now=`date`
+    local now=`date -u +"%Y-%m-%dT%H:%M:%SZ"`
     local level="$1"
     local message="$2"
     echo "$APP $now [$level] $message"
