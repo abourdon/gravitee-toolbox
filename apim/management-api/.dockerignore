@@ -1,0 +1,4 @@
+Dockerfile
+*.md
+commands/node_modules
+commands/npm-debug.log
