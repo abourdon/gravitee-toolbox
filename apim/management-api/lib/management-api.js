@@ -3,7 +3,7 @@ const util = require('util')
 const https = require('https')
 const Axios = require('axios')
 const Rx = require('rxjs')
-const {concatMap, expand, filter, flatMap, map, reduce, take, tap} = require('rxjs/operators');
+const {concatMap, distinct, expand, filter, flatMap, map, reduce, take, tap} = require('rxjs/operators');
 
 const DEFAULT_TIMEOUT = 10000;
 const HEADER_SEPARATOR = ':';
@@ -145,7 +145,10 @@ class ManagementApi {
                     return Rx
                         .from(api.details.proxy.groups.filter(group => StringUtils.caseInsensitiveMatches(group.name, filters.byEndpointGroupName)))
                         .pipe(
-                            map(() => api)
+                            map(() => api),
+
+                            // Only keep unique API result
+                            distinct(api => api.id)
                         );
                 }),
 
@@ -164,7 +167,10 @@ class ManagementApi {
                                 const checkEndpointTarget = !filters.byEndpointTarget || StringUtils.caseInsensitiveMatches(endpoint.target, filters.byEndpointTarget);
                                 return checkEndpointName && checkEndpointTarget;
                             }),
-                            map(() => api)
+                            map(() => api),
+
+                            // Only keep unique API result
+                            distinct(api => api.id)
                         );
                 }),
 
@@ -178,7 +184,10 @@ class ManagementApi {
                         .pipe(
                             flatMap(api => api.details.plans ? Rx.from(api.details.plans) : Rx.EMPTY),
                             filter(plan => StringUtils.caseInsensitiveMatches(plan.name, filters.byPlanName)),
-                            map(() => api)
+                            map(() => api),
+
+                            // Only keep unique API result
+                            distinct(api => api.id)
                         )
                 })
             );
