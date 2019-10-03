@@ -1,6 +1,6 @@
 # [Gravitee.io API Management](https://gravitee.io/products/apim/)'s Management API dedicated scripts
 
-## Prequesities 
+## Prerequisites 
 
 Have a ready to run [NodeJS](https://nodejs.org/en/) and [NPM](https://www.npmjs.com/) based environment.
 To install yours, [NVM](https://github.com/nvm-sh/nvm) could be a good option:

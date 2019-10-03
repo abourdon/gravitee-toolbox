@@ -1,6 +1,6 @@
 # [Gravitee.io API Management](https://gravitee.io/products/apim/)'s command line
 
-## Prequesities
+## Prerequisites
  
 ### For Docker users
 
