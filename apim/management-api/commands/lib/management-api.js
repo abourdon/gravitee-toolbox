@@ -1,8 +1,7 @@
 const StringUtils = require('./string-utils');
-const util = require('util')
-const https = require('https')
-const Axios = require('axios')
-const Rx = require('rxjs')
+const util = require('util');
+const request = require('request-promise');
+const Rx = require('rxjs');
 const {concatMap, distinct, expand, filter, flatMap, map, reduce, take, tap} = require('rxjs/operators');
 
 const DEFAULT_TIMEOUT = 10000;
@@ -510,7 +509,10 @@ class ManagementApi {
         const requestSettings = Object.assign({}, requestDetails);
 
         // Set request to access to the Management API
-        requestSettings.baseURL = this.settings.apimUrl;
+        requestSettings.baseUrl = this.settings.apimUrl;
+
+        // Set request and response content type to json and also enable automatic JSON parsing
+        requestSettings.json = true;
 
         // Add optional headers needed to access to the Management API
         // To do so, recreate headers by first using one in Settings then second by overriding with those given in the current requestDetails
@@ -524,10 +526,8 @@ class ManagementApi {
         }
 
         // Trust any SSL/TLS HTTP certificate by default
-        if (!requestSettings.httpsAgent) {
-            requestSettings.httpsAgent = new https.Agent({
-                rejectUnauthorized: false
-            })
+        if (!requestSettings.strictSSL) {
+            requestSettings.strictSSL = false;
         }
 
         // If no timeout is defined then set a default one to 10s
@@ -535,11 +535,7 @@ class ManagementApi {
             requestSettings.timeout = DEFAULT_TIMEOUT;
         }
 
-        return Rx.from(Axios.request(requestSettings))
-            .pipe(
-                // Only emit answer data
-                map(answer => answer.data)
-            );
+        return Rx.from(request(requestSettings));
     }
 }
 
