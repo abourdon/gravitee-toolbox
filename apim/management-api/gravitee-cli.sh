@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
 #
 # gravitee-cli: Command line to interact with the Gravitee.io Management API
 #

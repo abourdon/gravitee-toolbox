@@ -5,15 +5,16 @@ WORKDIR /usr/src/gravitee-cli
 # Copy project files (except those ignored by .dockerignore)
 COPY . ./
 
-# Build node files by installing necessary dependencies not already packaged in the alpine environment
-RUN cd commands \
-    && apk add --no-cache --virtual .gyp \
+# Add all necessary dependencies not already packaged in the alpine environment for both build and run time
+RUN apk add --no-cache bash \
+    && apk add --no-cache --virtual .build-dependencies \
         python \
         make \
         g++ \
+    && cd commands \
     && npm ci --only=production \
-    && apk del .gyp \
-    && cd ..
+    && cd .. \
+    && apk del .build-dependencies
 
 # Start the image by executing main script and waiting for additional arguments
 ENTRYPOINT ["./gravitee-cli.sh"]
