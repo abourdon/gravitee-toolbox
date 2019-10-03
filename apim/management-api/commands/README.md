@@ -7,7 +7,7 @@ To install yours, [NVM](https://github.com/nvm-sh/nvm) could be a good option:
 
 ```bash
 $ curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.34.0/install.sh | bash
-$ nvm install node --reinstall-packages-from=node
+$ nvm install 12.0
 ```
 
 > **Note:** At the time of writing, the latest NVM version is v0.34.0. Feel free to update it according to the current latest one.
