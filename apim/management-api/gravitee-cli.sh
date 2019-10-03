@@ -49,8 +49,14 @@ function help {
     echo '  -h, --help       Display this helper message.'
     echo ''
     echo 'COMMAND:'
-    echo '  Command to execute with its optional COMMAND_OPTIONS. Use -h/--help to display helper associated to the COMMAND.'
-    echo "  Available COMMANDs: `echo $availableCommands | tr "\n" ' '`"
+    echo '  Command to execute with its optional COMMAND_OPTIONS.'
+    echo '  Available COMMANDs:'
+    local command
+    for command in `echo $availableCommands`; do
+      echo "    - $command"
+    done
+    echo '  Use -h/--help to display helper associated to the COMMAND, e.g., '
+    echo "    $ $APP $command -h"
 
     exit 0
 }
