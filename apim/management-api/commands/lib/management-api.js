@@ -544,6 +544,51 @@ class ManagementApi {
     }
 
     /**
+     * Get API direct members.
+     *
+     * @param apiId the API identifier.
+     * @returns {Observable<any>}
+     */
+    getApiDirectMembers(apiId) {
+        const requestSettings = {
+            method: 'get',
+            url: util.format('/apis/%s/members', apiId)
+        };
+        return this._request(requestSettings);
+    }
+
+    /**
+     * Delete an API direct member.
+     *
+     * @param apiId the API identifier.
+     * @param userId the member identifier.
+     * @returns {Observable<any>}
+     */
+    deleteApiDirectMember(apiId, userId) {
+        const requestSettings = {
+            method: 'delete',
+            url: util.format('/apis/%s/members?user=%s', apiId, userId)
+        };
+        return this._request(requestSettings).pipe(
+            map(_response => userId)
+        );
+    }
+
+    /**
+     * Get group members.
+     *
+     * @param groupId the group identifier.
+     * @returns {Observable<any>}
+     */
+    getGroupMembers(groupId) {
+        const requestSettings = {
+            method: 'get',
+            url: util.format('/configuration/groups/%s/members', groupId)
+        };
+        return this._request(requestSettings);
+    }
+
+    /**
      * Do a request to the Management API
      *
      * @param {object} requestDetails details of the Management API request
