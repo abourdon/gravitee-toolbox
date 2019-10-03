@@ -12,6 +12,8 @@ RUN apk add --no-cache bash \
         make \
         g++ \
     && cd commands \
+    # No necessary to be SSL/TLS strict for public packages and make it compatible with any company proxy
+    && npm config set strict-ssl=false \
     && npm ci --only=production \
     && cd .. \
     && apk del .build-dependencies

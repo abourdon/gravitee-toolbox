@@ -1,7 +1,6 @@
-const util = require('util')
-const https = require('https')
-const Axios = require('axios')
-const Rx = require('rxjs')
+const util = require('util');
+const request = require('request-promise');
+const Rx = require('rxjs');
 const { catchError, concatMap, expand, filter, flatMap, map, reduce, take } = require('rxjs/operators')
 
 /**
@@ -197,7 +196,12 @@ class ElasticSearch {
      */
     _request(requestDetails) {
         const requestSettings = Object.assign({}, requestDetails);
-        requestSettings.baseURL = this.settings.esUrl;
+
+        requestSettings.baseUrl = this.settings.esUrl;
+
+        // Set request and response content type to json and also enable automatic JSON parsing
+        requestSettings.json = true;
+
         if (this.settings.esHeaders !== undefined) {
             if (requestSettings.headers === undefined) {
                 requestSettings.headers = {};
@@ -209,21 +213,18 @@ class ElasticSearch {
                 requestSettings.headers[headerName] = headerValue;
             });
         }
+
         // Trust any SSL/TLS HTTP certificate by default
-        if (!requestSettings.httpsAgent) {
-            requestSettings.httpsAgent = new https.Agent({
-                rejectUnauthorized: false
-            })
+        if (!requestSettings.strictSSL) {
+            requestSettings.strictSSL = false;
         }
+
         // If no timeout is defined then set a default one to 10s
         if (!requestSettings.timeout) {
             requestSettings.timeout = 10000;
         }
-        return Rx.from(Axios.request(requestSettings))
-            .pipe(
-                // Only emit answer data
-                map(answer => answer.data)
-            );
+
+        return Rx.from(request(requestSettings));
     }
 }
 
