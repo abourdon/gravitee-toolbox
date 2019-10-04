@@ -92,7 +92,7 @@ class ImportApi extends ManagementApiScript {
                         return Rx.of(Object.assign({ content: context.importedFileContent, id: null }))
                     }
 
-                    return managementApi.listApis(context.apiFilters)
+                    return managementApi.listApisBasics(context.apiFilters)
                         .pipe(
                             // Merge all APIs emitted into array
                             toArray(),

@@ -234,7 +234,7 @@ class ExtractApiQuality extends ManagementApiScript {
         const apiIds = managementApi.login(this.argv['username'], this.argv['password']).pipe(
                 flatMap(_token => this.argv['api-id'] !== undefined
                     ? Rx.of(this.argv['api-id'])
-                    : managementApi.listApis({}, this.argv['delay-period'], 30000).pipe(
+                    : managementApi.listApisBasics({}, this.argv['delay-period'], 30000).pipe(
                         map(api => api.id)
                     )
                 )

@@ -1,5 +1,5 @@
 const ManagementApiScript = require('./lib/management-api-script');
-const { flatMap } = require('rxjs/operators');
+const {flatMap} = require('rxjs/operators');
 const util = require('util');
 
 const NO_DELAY_PERIOD = 0;
@@ -51,8 +51,8 @@ class ListApis extends ManagementApiScript {
             .login(this.argv['username'], this.argv['password'])
             .pipe(
                 flatMap(_token => {
-                    return this.hasCommonFilters() ?
-                        managementApi.listApis({
+                    return this.hasBasicsFiltersOnly() ?
+                        managementApi.listApisBasics({
                             byName: this.argv['filter-by-name'],
                             byContextPath: this.argv['filter-by-context-path']
                         }, NO_DELAY_PERIOD) :
@@ -78,8 +78,10 @@ class ListApis extends ManagementApiScript {
             ));
     }
 
-    hasCommonFilters() {
-        return this.argv['filter-by-name'] || this.argv['filter-by-context-path'];
+    hasBasicsFiltersOnly() {
+        return Object.keys(this.argv)
+            .filter(argv => argv.startsWith("filter-by") && argv !== 'filter-by-name' && argv !== 'filter-by-context-path')
+            .length === 0;
     }
 }
 

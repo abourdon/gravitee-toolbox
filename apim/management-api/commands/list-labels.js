@@ -19,7 +19,7 @@ class ListLabels extends ManagementApiScript {
         managementApi
             .login(this.argv['username'], this.argv['password'])
             .pipe(
-                flatMap(_token => managementApi.listApis()),
+                flatMap(_token => managementApi.listApisBasics()),
                 map(api => Object.assign({id: api.id, name: api.name, version: api.version, labels: api.labels})),
                 filter(api => api.labels !== undefined),
                 flatMap(api => api.labels.map(label => Object.assign({label: label, api: Object.assign({ id: api.id, name: api.name, version: api.version})}))),

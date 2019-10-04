@@ -74,7 +74,7 @@ class ManagementApi {
      * @param {number} delayPeriod the delay period to temporize API broadcast (by default 50 milliseconds)
      * @param {number} timeout threshold for request to time out
      */
-    listApis(filters = {}, delayPeriod = 50, timeout = DEFAULT_TIMEOUT) {
+    listApisBasics(filters = {}, delayPeriod = 50, timeout = DEFAULT_TIMEOUT) {
         const requestSettings = {
             method: 'get',
             url: 'apis',
@@ -105,7 +105,7 @@ class ManagementApi {
     /**
      * List all APIs according to the optional given filters.
      * Each matched API is emitted individually, by allowing delay between events according to the given delayPeriod (by default 50 milliseconds) in order to avoid huge flooding in case of high number of APIs.
-     * This listing requires to get API details for each API, through export feature, which is time consuming. If you do not need API details or specific filters, prefer using #listApis() instead.
+     * This listing requires to get API details for each API, through export feature, which is time consuming. If you do not need API details or specific filters, prefer using #listApisBasics() instead.
      *
      * Available filters are:
      * - byName: to search against API name (insensitive regular expression)
@@ -120,7 +120,7 @@ class ManagementApi {
      * @param {number} timeout threshold for request to time out
      */
     listApisDetails(filters = {}, delayPeriod = 50, timeout = DEFAULT_TIMEOUT) {
-        return this.listApis(filters, delayPeriod, timeout)
+        return this.listApisBasics(filters, delayPeriod, timeout)
             .pipe(
                 // Enrich API definition with the API export to allow deeper filtering
                 // API export result will be available through the details attribute

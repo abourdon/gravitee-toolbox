@@ -80,7 +80,7 @@ class TransferOwnership extends ManagementApiScript {
 
     getApisOrApplications(managementApi, owner) {
         return (this.argv['type'] == 'api' ?
-            managementApi.listApis({
+            managementApi.listApisBasics({
                 byName: this.argv['filter-by-name'],
             }, 0) :
             managementApi.listApplications({

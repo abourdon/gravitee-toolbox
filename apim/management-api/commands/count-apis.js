@@ -44,8 +44,8 @@ class CountApis extends ManagementApiScript {
             .login(this.argv['username'], this.argv['password'])
             .pipe(
                 flatMap(_token => {
-                    return this.hasCommonFilters() ?
-                        managementApi.listApis({
+                    return this.hasBasicsFiltersOnly() ?
+                        managementApi.listApisBasics({
                             byName: this.argv['filter-by-name'],
                             byContextPath: this.argv['filter-by-context-path']
                         }, NO_DELAY_PERIOD) :
@@ -64,8 +64,10 @@ class CountApis extends ManagementApiScript {
             ));
     }
 
-    hasCommonFilters() {
-        return this.argv['filter-by-name'] || this.argv['filter-by-context-path'];
+    hasBasicsFiltersOnly() {
+        return Object.keys(this.argv)
+            .filter(argv => argv.startsWith("filter-by") && argv !== 'filter-by-name' && argv !== 'filter-by-context-path')
+            .length === 0;
     }
 }
 new CountApis().run();
