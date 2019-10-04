@@ -39,6 +39,9 @@ class ListApis extends ManagementApiScript {
                     describe: "Filter APIs against plan name (insensitive regex)",
                     type: 'string'
                 },
+                'filter-by-policy-name': {
+                    describe: 'Filter APIs against their policy technical names (insensitive regex) (see https://docs.gravitee.io/apim_policies_overview.html for more details)'
+                }
             }
         );
     }
@@ -59,7 +62,8 @@ class ListApis extends ManagementApiScript {
                             byEndpointGroupName: this.argv['filter-by-endpoint-group-name'],
                             byEndpointName: this.argv['filter-by-endpoint-name'],
                             byEndpointTarget: this.argv['filter-by-endpoint-target'],
-                            byPlanName: this.argv['filter-by-plan-name']
+                            byPlanName: this.argv['filter-by-plan-name'],
+                            byPolicyName: this.argv['filter-by-policy-name']
                         });
                 }),
             )
