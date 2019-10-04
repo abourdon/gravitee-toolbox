@@ -188,6 +188,25 @@ class ManagementApi {
                             // Only keep unique API result
                             distinct(api => api.id)
                         )
+                }),
+
+                // Apply filter on policies if necessary
+                flatMap(api => {
+                    if (!filters.byPolicyName) {
+                        return Rx.of(api);
+                    }
+                    return Rx
+                        .of(api)
+                        .pipe(
+                            flatMap(api => api.details.paths ? Rx.from(Object.keys(api.details.paths)) : Rx.EMPTY),
+                            flatMap(path => Rx.from(api.details.paths[path])),
+                            flatMap(policy => Rx.from(Object.keys(policy))),
+                            filter(policyConfiguration => StringUtils.caseInsensitiveMatches(policyConfiguration, filters.byPolicyName)),
+                            map(() => api),
+
+                            // Only keep unique API result
+                            distinct(api => api.id)
+                        )
                 })
             );
     }
