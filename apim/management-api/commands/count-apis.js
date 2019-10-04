@@ -35,6 +35,9 @@ class CountApis extends ManagementApiScript {
                     describe: "Filter APIs against endpoint target (insensitive regex)",
                     type: 'string'
                 },
+                'filter-by-policy-technical-name': {
+                    describe: 'Filter APIs against their policy technical names (insensitive regex) (see https://docs.gravitee.io/apim_policies_overview.html for more details)'
+                }
             }
         );
     }
@@ -55,6 +58,7 @@ class CountApis extends ManagementApiScript {
                             byEndpointGroupName: this.argv['filter-by-endpoint-group-name'],
                             byEndpointName: this.argv['filter-by-endpoint-name'],
                             byEndpointTarget: this.argv['filter-by-endpoint-target'],
+                            byPolicyTechnicalName: this.argv['filter-by-policy-technical-name']
                         });
                 }),
                 count()
