@@ -192,7 +192,7 @@ class ManagementApi {
 
                 // Apply filter on policies if necessary
                 flatMap(api => {
-                    if (!filters.byPolicyName) {
+                    if (!filters.byPolicyTechnicalName) {
                         return Rx.of(api);
                     }
                     return Rx
@@ -201,7 +201,7 @@ class ManagementApi {
                             flatMap(api => api.details.paths ? Rx.from(Object.keys(api.details.paths)) : Rx.EMPTY),
                             flatMap(path => Rx.from(api.details.paths[path])),
                             flatMap(policy => Rx.from(Object.keys(policy))),
-                            filter(policyConfiguration => StringUtils.caseInsensitiveMatches(policyConfiguration, filters.byPolicyName)),
+                            filter(policyConfiguration => StringUtils.caseInsensitiveMatches(policyConfiguration, filters.byPolicyTechnicalName)),
                             map(() => api),
 
                             // Only keep unique API result
