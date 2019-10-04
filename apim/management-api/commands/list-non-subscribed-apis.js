@@ -31,7 +31,7 @@ class ListNonSubscribedApis extends ManagementApiScript {
         managementApi
             .login(this.argv['username'], this.argv['password'])
             .pipe(
-                flatMap(_token => managementApi.listApis({
+                flatMap(_token => managementApi.listApisBasics({
                             byName: this.argv['filter-by-name'],
                             byContextPath: this.argv['filter-by-context-path']
                         }, NO_DELAY_PERIOD)),
