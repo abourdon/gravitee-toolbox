@@ -1,4 +1,4 @@
-const ManagementApiScript = require('./lib/management-api-script');
+const CliCommand = require('./lib/cli-command');
 const {flatMap} = require('rxjs/operators');
 const util = require('util');
 
@@ -9,7 +9,7 @@ const NO_DELAY_PERIOD = 0;
  *
  * @author Aurelien Bourdon
  */
-class ListApis extends ManagementApiScript {
+class ListApis extends CliCommand {
 
     constructor() {
         super(

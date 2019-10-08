@@ -10,13 +10,13 @@ const LOG_LEVEL = {
 };
 
 /**
- * Base type for any Management API script.
+ * Base type for any Management API Command Line Interface's command.
  *
  * Any inherited Script type will need to override the #definition(ManagementApi) method to specify the Script execution
  *
  * @author Aurelien Bourdon
  */
-class ManagementApiScript {
+class CliCommand {
 
     /**
      * Create a new ManagementApi script by specifying its name and specific options
@@ -69,7 +69,7 @@ class ManagementApiScript {
      * Get (full, i.e., specific + default) options of this ManagementApi script
      */
     get options() {
-        return Object.assign(ManagementApiScript.defaultOptions(), this.specificOptions);
+        return Object.assign(CliCommand.defaultOptions(), this.specificOptions);
     }
 
     /**
@@ -209,9 +209,9 @@ class ManagementApiScript {
      * @param {object} _managementApi the MagementApi instance associated to this Management API Script instance
      */
     definition(_managementApi) {
-        throw new Error('No definition found for this script. ManagementApiScript#definition() needs to be overridden');
+        throw new Error('No definition found for this script. CliCommand#definition() needs to be overridden');
     }
 
 }
 
-module.exports = ManagementApiScript;
+module.exports = CliCommand;

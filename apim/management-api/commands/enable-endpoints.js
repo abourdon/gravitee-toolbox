@@ -1,4 +1,4 @@
-const ManagementApiScript = require('./lib/management-api-script');
+const CliCommand = require('./lib/cli-command');
 const StringUtils = require('./lib/string-utils');
 const Rx = require('rxjs');
 const {flatMap, map, reduce} = require('rxjs/operators');
@@ -10,7 +10,7 @@ const readline = require('readline');
  *
  * @author Aurelien Bourdon
  */
-class EnableEndpoints extends ManagementApiScript {
+class EnableEndpoints extends CliCommand {
 
     constructor() {
         super(

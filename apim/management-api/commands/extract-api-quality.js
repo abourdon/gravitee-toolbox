@@ -1,4 +1,4 @@
-const ManagementApiScript = require('./lib/management-api-script');
+const CliCommand = require('./lib/cli-command');
 const ElasticSearch = require('../elasticsearch/lib/elasticsearch');
 const { QualityCriterion, convertQualityCriteria } = require('./lib/quality-criteria-converter');
 const Rx = require('rxjs')
@@ -178,7 +178,7 @@ const apiDetailsCriteriaEvaluators = [
  *
  * @author Alexandre Carbenay
  */
-class ExtractApiQuality extends ManagementApiScript {
+class ExtractApiQuality extends CliCommand {
 
     constructor() {
         super(

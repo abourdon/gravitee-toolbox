@@ -1,4 +1,4 @@
-const ManagementApiScript = require('./lib/management-api-script');
+const CliCommand = require('./lib/cli-command');
 const Rx = require('rxjs');
 const {filter, flatMap, map, reduce, tap} = require('rxjs/operators');
 const util = require('util');
@@ -21,7 +21,7 @@ const ONE_HOUR_MILLIS = 60 * 60 * 1000;
  *
  * @author Aurelien Bourdon
  */
-class EnableLogs extends ManagementApiScript {
+class EnableLogs extends CliCommand {
 
     constructor() {
         super(
