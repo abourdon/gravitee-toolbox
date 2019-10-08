@@ -18,9 +18,9 @@ Finally, install the desired dependencies:
 $ npm install
 ```
 
-## Script execution
+## CLI command execution
 
-Any script can be executed by using the `node` command line as follows:
+In addition to be executed directly from the [gravitee-cli.sh](../gravitee-cli.sh) CLI, any command is actually a NodeJS script that can be executed as follow:
 
 ```bash
 $ node <script>.js [OPTIONS]
@@ -51,6 +51,8 @@ Here are existing commands :
 - [`list-applications.js`](./list-applications.js) : List all registered Applications by displaying their name, context path and quality.
 - [`list-inactive-ldap-users.js`](./list-inactive-ldap-users.js): List inactive LDAP users.
 - [`list-labels.js`](./list-labels.js) : List labels defined on APIs.
+- [`list-non-subscribed-apis.js`](./list-non-subscribed-apis.js) : List all APIs with no active subscription by displaying their name, context path, owner name and owner email.
+- [`list-non-subscribed-applications.js`](./list-non-subscribed-applications.js) : List all applications with no active subscription by displaying their name, owner name and owner email.
 - [`transfer-ownership.js`](./transfer-ownership.js): Transfer ownership for APIs or applications.
 
 ## CLI command development example
