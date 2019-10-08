@@ -1,4 +1,4 @@
-const ManagementApiScript = require('./lib/management-api-script');
+const CliCommand = require('./lib/cli-command');
 const { convertQualityCriteria } = require('./lib/quality-criteria-converter');
 const { flatMap, map } = require('rxjs/operators');
 const util = require('util');
@@ -8,7 +8,7 @@ const util = require('util');
  *
  * @author Alexandre Carbenay
  */
-class ListApisQuality extends ManagementApiScript {
+class ListApisQuality extends CliCommand {
 
     constructor() {
         super(

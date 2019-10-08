@@ -1,4 +1,4 @@
-const ManagementApiScript = require('./lib/management-api-script');
+const CliCommand = require('./lib/cli-command');
 const Rx = require('rxjs')
 const { filter, flatMap, map } = require('rxjs/operators');
 const util = require('util');
@@ -14,7 +14,7 @@ const now = (new Date).getTime();
  *
  * @author Alexandre Carbenay
  */
-class ListActivatedLogsApis extends ManagementApiScript {
+class ListActivatedLogsApis extends CliCommand {
 
     constructor() {
         super(

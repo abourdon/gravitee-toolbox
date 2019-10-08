@@ -1,4 +1,4 @@
-# [Gravitee.io API Management](https://gravitee.io/products/apim/)'s Management API dedicated scripts
+# [Gravitee.io API Management](https://gravitee.io/products/apim/) CLI commands
 
 ## Prerequisites 
 
@@ -37,9 +37,9 @@ For more details about `[OPTIONS]`, ask for help:
 $ node <script>.js -h
 ```
 
-## Script list
+## CLI command list
 
-Here are existing scripts :
+Here are existing commands :
 - [`count-apis.js`](./count-apis.js): Count the number of APIs based on user search predicate.
 - [`enable-endpoints.js`](./enable-endpoints.js) : Enable (or disable) API endpoints based on user predicate.
 - [`enable-logs.js`](./enable-logs.js) : Enable (or disable) detailed logs on APIs that match user predicate.
@@ -53,10 +53,10 @@ Here are existing scripts :
 - [`list-labels.js`](./list-labels.js) : List labels defined on APIs.
 - [`transfer-ownership.js`](./transfer-ownership.js): Transfer ownership for APIs or applications.
 
-## Script development example
+## CLI command development example
 
 ```js
-const ManagementApiScript = require('./lib/management-api-script');
+const CliCommand = require('./cli-command');
 const { flatMap } = require('rxjs/operators');
 const util = require('util');
 
@@ -67,7 +67,7 @@ const NO_DELAY_PERIOD = 0;
  *
  * @author Aurelien Bourdon
  */
-class ListApis extends ManagementApiScript {
+class ListApis extends CliCommand {
 
     constructor() {
         super(
@@ -154,6 +154,6 @@ class ListApis extends ManagementApiScript {
 new ListApis().run();
 ```
 
-## Add your own script
+## Add your own CLI command
 
-All the technical stuff is handled by the [`ManagementApiScript`](./lib/management-api-script.js) class. Then to add your own script, you just have to inherit from it and only define the specific part of your script (i.e., its name and process definition by overridding the associated methods as shown above).
+All the technical stuff is handled by the [`CliCommand`](lib/cli-command.js) class. Then to add your own CLI command, you just have to inherit from it and only define the specific part of your command (i.e., its name and process definition by overriding the associated methods as shown above).

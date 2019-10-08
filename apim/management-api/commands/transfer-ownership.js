@@ -1,4 +1,4 @@
-const ManagementApiScript = require('./lib/management-api-script');
+const CliCommand = require('./lib/cli-command');
 const StringUtils = require('./lib/string-utils');
 const Rx = require('rxjs');
 const {flatMap, map, reduce, switchMap, tap} = require('rxjs/operators');
@@ -10,7 +10,7 @@ const readline = require('readline');
  *
  * @author Alexandre Carbenay
  */
-class TransferOwnership extends ManagementApiScript {
+class TransferOwnership extends CliCommand {
 
     constructor() {
         super(

@@ -1,4 +1,4 @@
-const ManagementApiScript = require('./lib/management-api-script');
+const CliCommand = require('./lib/cli-command');
 const { filter, flatMap, groupBy, map, toArray } = require('rxjs/operators');
 const util = require('util');
 
@@ -7,7 +7,7 @@ const util = require('util');
  *
  * @author Alexandre Carbenay
  */
-class ListLabels extends ManagementApiScript {
+class ListLabels extends CliCommand {
 
     constructor() {
         super(
