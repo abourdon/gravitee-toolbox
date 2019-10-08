@@ -91,6 +91,12 @@ class ManagementApi {
                 // Apply filter on context-path if necessary
                 filter(api => !filters.byContextPath || StringUtils.caseInsensitiveMatches(api.context_path, filters.byContextPath)),
 
+                // Apply filter on primary owner if necessary
+                filter(api => !filters.byPrimaryOwner && typeof api.owner !== 'undefined'
+                    || StringUtils.caseInsensitiveMatches(api.owner.displayName, filters.byPrimaryOwner)
+                    || (typeof api.owner.email !== 'undefined' && StringUtils.caseInsensitiveMatches(api.owner.email, filters.byPrimaryOwner))
+                ),
+
                 // Apply delay between API emission
                 concatMap(api => Rx
                     .interval(delayPeriod)

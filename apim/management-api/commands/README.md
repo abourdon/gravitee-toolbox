@@ -81,6 +81,10 @@ class ListApis extends ManagementApiScript {
                     describe: "Filter APIs against context-path (insensitive regex)",
                     type: 'string'
                 },
+                'filter-by-primary-owner': {
+                    describe: "Filter APIs against its primary owner name or address (insensitive regex)",
+                    type: 'string'
+                },
                 'filter-by-endpoint-group-name': {
                     describe: "Filter APIs against endpoint group name (insensitive regex)",
                     type: 'string'
@@ -112,7 +116,8 @@ class ListApis extends ManagementApiScript {
                     return this.hasBasicsFiltersOnly() ?
                         managementApi.listApisBasics({
                             byName: this.argv['filter-by-name'],
-                            byContextPath: this.argv['filter-by-context-path']
+                            byContextPath: this.argv['filter-by-context-path'],
+                            byPrimaryOwner: this.argv['filter-by-primary-owner']
                         }, NO_DELAY_PERIOD) :
                         managementApi.listApisDetails({
                             byName: this.argv['filter-by-name'],
@@ -138,8 +143,11 @@ class ListApis extends ManagementApiScript {
 
     hasBasicsFiltersOnly() {
         return Object.keys(this.argv)
-            .filter(argv => argv.startsWith("filter-by") && argv !== 'filter-by-name' && argv !== 'filter-by-context-path')
-            .length === 0;
+            .filter(argv => argv.startsWith("filter-by")
+                && argv !== 'filter-by-name'
+                && argv !== 'filter-by-context-path'
+                && argv !== 'filter-by-primary-owner'
+            ).length === 0;
     }
 }
 
