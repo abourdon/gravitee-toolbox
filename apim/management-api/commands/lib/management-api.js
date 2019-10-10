@@ -389,7 +389,7 @@ class ManagementApi {
     import(api, apiId) {
         const requestSettings = {
             method: 'post',
-            data: api
+            body: api
         };
         requestSettings.url = apiId ? util.format('apis/%s/import', apiId) : 'apis/import';
         return this._request(requestSettings);
@@ -427,7 +427,7 @@ class ManagementApi {
         delete data.picture_url;
         const requestSettings = {
             method: 'put',
-            data: data,
+            body: data,
             url: util.format('apis/%s', apiId)
         };
         return this._request(requestSettings);
@@ -471,7 +471,7 @@ class ManagementApi {
         const requestSettings = {
             method: 'post',
             url: util.format('%ss/%s/members/transfer_ownership', elementType, elementId),
-            data: {'reference': reference, 'role': oldOwnerRole}
+            body: {'reference': reference, 'role': oldOwnerRole}
         };
         return this._request(requestSettings);
     }

@@ -39,7 +39,7 @@ class ElasticSearch {
         const requestSettings = {
             method: 'get',
             url: util.format('%s/_search', indexName),
-            data: {
+            body: {
               "size": pageSize,
               "query": {
                 "bool": {
@@ -66,7 +66,7 @@ class ElasticSearch {
         const requestSettings = {
             method: 'get',
             url: util.format('%s/_search', indexName),
-            data: {
+            body: {
             "size": 0,
               "query": {
                 "bool": {
@@ -143,7 +143,7 @@ class ElasticSearch {
             headers: {
                 'content-type': 'application/x-ndjson'
             },
-            data: requestData
+            body: requestData
         };
     }
 
@@ -177,7 +177,7 @@ class ElasticSearch {
                     map(result => {
                         const nextRequest = Object.assign({}, result.request);
                         const lastItem = result.response.hits.hits[result.response.hits.hits.length - 1];
-                        nextRequest.data.search_after = lastItem.sort;
+                        nextRequest.body.search_after = lastItem.sort;
                         return nextRequest;
                     }),
                     flatMap(request => this._request(request)
