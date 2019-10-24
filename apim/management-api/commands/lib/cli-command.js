@@ -6,7 +6,8 @@ const Rx = require('rxjs');
 
 const LOG_LEVEL = {
     info: 'INFO',
-    error: 'ERROR'
+    error: 'ERROR',
+    warn: 'WARNING'
 };
 
 /**
@@ -104,6 +105,15 @@ class CliCommand {
     }
 
     /**
+     * Display a warning message
+     *
+     * @param {string} message the warning message to display
+     */
+    displayWarning(message) {
+        this._displayLog(LOG_LEVEL.warn, message);
+    }
+
+    /**
      * Display an error message
      *
      * @param {string} message the error message to display
@@ -119,7 +129,17 @@ class CliCommand {
      */
     handleError(error) {
         this.displayError(util.inspect(error));
-        process.exit(1);
+        this.exitWithError();
+    }
+
+    /**
+     *
+     * Exit command with error (status 1 by default)
+     *
+     * @param status the exit status code (1 by default)
+     */
+    exitWithError(status = 1) {
+        process.exit(status);
     }
 
     /**
@@ -204,9 +224,9 @@ class CliCommand {
     }
 
     /**
-     * Definition of this Management API Script instance
+     * Definition of this CLI command
      *
-     * @param {object} _managementApi the MagementApi instance associated to this Management API Script instance
+     * @param {object} _managementApi the MagementApi instance associated to this CLI command
      */
     definition(_managementApi) {
         throw new Error('No definition found for this script. CliCommand#definition() needs to be overridden');
