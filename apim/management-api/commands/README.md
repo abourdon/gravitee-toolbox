@@ -41,6 +41,7 @@ $ node <script>.js -h
 
 Here are existing commands :
 - [`count-apis.js`](./count-apis.js): Count the number of APIs based on user search predicate.
+- [`create-endpoint.js`](./create-endpoint.js): Create an API endpoint.
 - [`enable-endpoints.js`](./enable-endpoints.js) : Enable (or disable) API endpoints based on user predicate.
 - [`enable-logs.js`](./enable-logs.js) : Enable (or disable) detailed logs on APIs that match user predicate.
 - [`extract-api-quality.js`](./extract-api-quality.js) : Extract API quality compliance as CSV content.

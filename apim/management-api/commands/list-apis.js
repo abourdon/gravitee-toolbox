@@ -70,7 +70,7 @@ class ListApis extends CliCommand {
                             byPlanName: this.argv['filter-by-plan-name'],
                             byPolicyTechnicalName: this.argv['filter-by-policy-technical-name']
                         });
-                }),
+                })
             )
             .subscribe(this.defaultSubscriber(
                 api => this.displayRaw(util.format('[%s, %s, %s <%s>] %s',

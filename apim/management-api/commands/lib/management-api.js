@@ -4,6 +4,12 @@ const request = require('request-promise');
 const Rx = require('rxjs');
 const {concatMap, distinct, expand, filter, flatMap, map, reduce, take, tap} = require('rxjs/operators');
 
+const EXPORT_EXCLUDE = {
+    GROUPS: 'groups',
+    MEMBERS: 'members',
+    PAGES: 'pages',
+    PLANS: 'plans'
+};
 const DEFAULT_TIMEOUT = 10000;
 const HEADER_SEPARATOR = ':';
 
@@ -366,7 +372,7 @@ class ManagementApi {
             url: util.format('apis/%s/export', apiId)
         };
         if (exclude) {
-            requestSettings.params = {
+            requestSettings.qs = {
                 exclude: exclude
             }
         }
@@ -405,6 +411,19 @@ class ManagementApi {
         const requestSettings = {
             method: 'get',
             url: util.format('applications/%s', applicationId)
+        };
+        return this._request(requestSettings);
+    }
+
+    /**
+     * Get tenants currently configured in the platform
+     *
+     * @returns {Observable<ObservedValueOf<*>>} the list of tenants currently configured in the platform
+     */
+    getTenants() {
+        const requestSettings = {
+            method: 'get',
+            url: 'configuration/tenants'
         };
         return this._request(requestSettings);
     }
@@ -586,6 +605,7 @@ ManagementApi.Settings = class {
 
 module.exports = {
     Settings: ManagementApi.Settings,
+    EXPORT_EXCLUDE: EXPORT_EXCLUDE,
     createInstance: function (settings) {
         return new ManagementApi(settings);
     }
