@@ -12,6 +12,12 @@ const EXPORT_EXCLUDE = {
 };
 const DEFAULT_TIMEOUT = 10000;
 const HEADER_SEPARATOR = ':';
+const EXPORT_EXCLUDE = {
+    GROUPS: 'groups',
+    MEMBERS: 'members',
+    PAGES: 'pages',
+    PLANS: 'plans'
+};
 
 /**
  * Gravitee.io APIM's Management API client instance.
