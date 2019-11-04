@@ -331,16 +331,53 @@ class ManagementApi {
     }
 
     /**
+     * Get API plans.
+     *
+     * @param apiId the API identifier from which getting plans.
+     * @param planStatus status of the plans to retrieve.
+     * @returns {Observable<any>}
+     */
+    getApiPlans(apiId, planStatus = ['staging', 'published', 'deprecated', 'closed']) {
+        var status = planStatus.reduce((acc, s) => acc + (acc.length > 0 ? "," : "") + s, "");
+        const requestSettings = {
+            method: 'get',
+            url: util.format('/apis/%s/plans?status=%s', apiId, status)
+        };
+        return this._request(requestSettings);
+    }
+
+    /**
      * Get API subscriptions.
      *
      * @param apiId the API identifier from which getting subscriptions.
+     * @param subscriptionStatus status of the subscriptions to retrieve.
+     * @param size number of subscriptions to retrieve.
      * @returns {Observable<any>}
      */
     getApiSubscriptions(apiId, subscriptionStatus = ['ACCEPTED', 'PENDING', 'PAUSED'], size = 10) {
-        var status = subscriptionStatus.reduce((acc, s) => acc + (acc.length > 0 ? "," : "") + s, "");
+        if (typeof subscriptionStatus === 'string') {
+            var status = subscriptionStatus;
+        } else {
+            var status = subscriptionStatus.reduce((acc, s) => acc + (acc.length > 0 ? "," : "") + s, "");
+        }
         const requestSettings = {
             method: 'get',
             url: util.format('/apis/%s/subscriptions?size=%d&status=%s', apiId, size, status)
+        };
+        return this._request(requestSettings);
+    }
+
+    /**
+     * Get API subscription keys.
+     *
+     * @param apiId the API identifier the subscription belongs to.
+     * @param subscriptionId the subscription identifier from which getting keys.
+     * @returns {Observable<any>}
+     */
+    getSubscriptionKeys(apiId, subscriptionId) {
+        const requestSettings = {
+            method: 'get',
+            url: util.format('/apis/%s/subscriptions/%s/keys', apiId, subscriptionId)
         };
         return this._request(requestSettings);
     }
