@@ -57,94 +57,36 @@ class ElasticSearch {
         return this._requestAllPages(requestSettings);
     }
 
-    aggregateHits(indexName, aggregation, from, to = 'now', searchTerms = [], timeKey = "@timestamp") {
+    /**
+     * Deletes hits from the specified index corresponding to the specified terms for the specified time range.
+     *
+     * @param {string} elasticsearch index name
+     * @param {string} time range lower bound
+     * @param {string} time range upper bound
+     * @param {map} search terms (optional)
+     * @param {string} time key in index (default = "@timestamp")
+     * @return the deletion result.
+     */
+    deleteByQuery(indexName, from, to = 'now', searchTerms = [], timeKey = "@timestamp") {
         const terms = Array.from(searchTerms)
             .map(([key, value]) => ({ "term": { [key]: { "value": value } } }))
             .reduce((acc, term) => acc.concat(term), []);
         terms.push({"range":{[timeKey]:{"gte":from,"lte":to}}});
 
         const requestSettings = {
-            method: 'get',
-            url: util.format('%s/_search', indexName),
+            method: 'post',
+            url: util.format('%s/_delete_by_query', indexName),
             body: {
-            "size": 0,
               "query": {
                 "bool": {
                   "must": [
                     terms
                   ]
                 }
-              },
-              "aggs" : aggregation
+              }
             }
         };
         return this._request(requestSettings);
-    }
-
-    /**
-     * Delete document corresponding to the specified id from the specified index and type.
-     *
-     * @param {string} elasticsearch index name
-     * @param {string} elasticsearch index type
-     * @param {string} document id
-     * @param {boolean} indicates whether function must throw an error in case of error HTTP status (default = false)
-     * @return a stream containing the deleted document id
-     */
-    deleteDoc(indexName, indexType, docId, failOnError = false) {
-        const requestSettings = {
-            method: 'delete',
-            url: util.format('%s/%s/%s', indexName, indexType, docId)
-        };
-        return this._request(requestSettings)
-            .pipe(
-                catchError(e => {
-                    if (failOnError) throw e;
-                    return Rx.empty();
-                }),
-                map(response => response._id)
-            );
-    }
-
-    /**
-     * Delete document corresponding to the specified ids from the specified index and type in a bulk request.
-     *
-     * @param {array} document ids
-     * @param {string} elasticsearch index name
-     * @param {string} elasticsearch index type (optional)
-     * @return a stream of Elasticsearch deletion status
-     */
-    bulkDelete(documentIds, indexName, indexType) {
-        return Rx.of(this._buildBulkDeleteRequest(documentIds, indexName, indexType))
-            .pipe(
-                flatMap(request => this._request(request).pipe(
-                    flatMap(response => response.items),
-                    map(item => item['delete'])
-                ))
-            );
-    }
-
-    /**
-     * Builds a bulk deletion request.
-     *
-     * @param {array} document ids
-     * @param {string} elasticsearch index name
-     * @param {string} elasticsearch index type (optional)
-     * @return the request to execute for bulk deletion
-     */
-    _buildBulkDeleteRequest(documentIds, indexName, indexType) {
-        const requestData = documentIds
-            .map(documentId => indexType !== undefined
-                ? util.format('{"delete":{"_type":"%s","_id":"%s"}}\n', indexType, documentId)
-                : util.format('{"delete":{"_id":"%s"}}\n', documentId))
-            .reduce((acc, row) => acc + row, '');
-        return {
-            method: 'post',
-            url: util.format('%s/_bulk', indexName),
-            headers: {
-                'content-type': 'application/x-ndjson'
-            },
-            body: requestData
-        };
     }
 
     /**
