@@ -84,7 +84,9 @@ class ListSubscriptions extends CliCommand {
                       byName: this.argv['filter-by-name'],
                       byContextPath: this.argv['filter-by-context-path'],
                       byPrimaryOwner: this.argv['filter-by-primary-owner']
-                  }, DEFAULT_DELAY_PERIOD)
+                  }, DEFAULT_DELAY_PERIOD).pipe(
+                      filter(api => api.manageable)
+                  )
             )
         );
     }
