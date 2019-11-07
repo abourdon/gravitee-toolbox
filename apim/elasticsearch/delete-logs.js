@@ -1,10 +1,5 @@
 const ElasticSearchScript = require('./lib/elasticsearch-script');
-const { of } = require('rxjs');
-const { bufferCount, flatMap, groupBy, map, toArray } = require('rxjs/operators');
 const util = require('util');
-
-// ES response status ignored for log ids logging.
-const ignoredStatus = [200, 404];
 
 /**
  * Delete logs corresponding to an API for a time slot.
@@ -22,11 +17,6 @@ class DeleteLogs extends ElasticSearchScript {
                     type: 'string',
                     demandOption: true
                 },
-                'es-request-index': {
-                    describe: 'Elasticsearch request index to search (can be an index pattern as gravitee-request-2019.10.*)',
-                    type: 'string',
-                    demandOption: true
-                },
                 'es-log-index': {
                     describe: "Elastic search log index",
                     type: 'string',
@@ -41,42 +31,20 @@ class DeleteLogs extends ElasticSearchScript {
                     describe: "Search for logs inside time range ending at this value",
                     type: 'string',
                     default: 'now'
-                },
-                'page-size': {
-                    describe: "Page size for search",
-                    type: 'number',
-                    default: 100
-                },
-                'bulk-delete-size': {
-                    describe: "Bulk size to delete logs",
-                    type: 'number',
-                    default: 1000
                 }
             }
         );
     }
 
     definition(elasticsearch) {
-        elasticsearch.searchHits(
-            this.argv['es-request-index'],
+        elasticsearch.deleteByQuery(
+            this.argv['es-log-index'],
             this.argv['from'],
             this.argv['to'],
-            [["_type", "request"], ["api", this.argv['api-id']]],
-            this.argv['page-size']
-         ).pipe(
-            map(hit => hit.hit._id),
-            bufferCount(this.argv['bulk-delete-size']),
-            flatMap(hitIds => elasticsearch.bulkDelete(hitIds, this.argv['es-log-index'], 'log')),
-            groupBy(deletedItem => deletedItem.status, deletedItem => deletedItem._id),
-            flatMap(group => group.pipe(toArray(), map(ids => Object.assign({ status: group.key, ids: ids }))))
-        ).subscribe(this.defaultSubscriber(
-            deletionGroup => {
-                const status = deletionGroup.status;
-                const ids = deletionGroup.ids;
-                this.displayInfo(util.format('[%d]: %d logs', status, ids.length));
-                if (!ignoredStatus.includes(status)) {
-                    this.displayRaw(ids);
-                }
+            [["_type", "log"], ["api", this.argv['api-id']]]
+         ).subscribe(this.defaultSubscriber(
+            deletionResult => {
+                this.displayInfo(util.format('Deleted %d logs', deletionResult.deleted));
             }
         ));
     }
