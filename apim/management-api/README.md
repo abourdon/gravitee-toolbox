@@ -41,7 +41,7 @@ $ cd ..
 Example
 
 ```
-$ docker run gravitee-cli list-apis \
+$ docker run -it gravitee-cli list-apis \
     --username user \
     --password password \
     --url https://apim-management-api.url \
