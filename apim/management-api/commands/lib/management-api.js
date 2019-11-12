@@ -338,7 +338,11 @@ class ManagementApi {
      * @returns {Observable<any>}
      */
     getApiPlans(apiId, planStatus = ['staging', 'published', 'deprecated', 'closed']) {
-        var status = planStatus.reduce((acc, s) => acc + (acc.length > 0 ? "," : "") + s, "");
+        if (typeof planStatus === 'string') {
+            var status = planStatus;
+        } else {
+            var status = planStatus.reduce((acc, s) => acc + (acc.length > 0 ? "," : "") + s, "");
+        }
         const requestSettings = {
             method: 'get',
             url: util.format('/apis/%s/plans?status=%s', apiId, status)
