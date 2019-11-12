@@ -63,9 +63,10 @@ class ListSubscriptions extends CliCommand {
                 flatMap(subscription => this.enrichSubscriptionWithKey(managementApi, subscription))
             ).subscribe(this.defaultSubscriber(
                 subscription => this.displayRaw(util.format(
-                    'api: %s (%s), application: %s (%s), plan: %s, subscription: %s, security: %s, key: %s',
+                    'api: %s (%s - %s), application: %s (%s), plan: %s, subscription: %s, security: %s, key: %s',
                     subscription.api.name,
                     subscription.api.id,
+                    subscription.api.context_path,
                     subscription.application.name,
                     subscription.application.id,
                     subscription.plan.name,
