@@ -58,7 +58,7 @@ class ElasticSearch {
     }
 
     aggregateHits(indexName, aggregation, from, to = 'now', searchTerms = [], timeKey = "@timestamp") {
-        var terms = Array.from(searchTerms)
+        const terms = Array.from(searchTerms)
             .map(([key, value]) => ({ "term": { [key]: { "value": value } } }))
             .reduce((acc, term) => acc.concat(term), []);
         terms.push({"range":{[timeKey]:{"gte":from,"lte":to}}});
@@ -152,14 +152,21 @@ class ElasticSearch {
      * This implies running multiple requests to Elasticsearch and concatenating responses.
      *
      * @param {object} requestDetails details of the Elasticsearch request
-     * @return a stream of Elasticsearch documents
+     * @return a stream of Elasticsearch documents with additional metadata (e.g. total of documents)
      */
     _requestAllPages(request) {
         return this._request(request)
             .pipe(
                 map(response => new ElasticSearchResult(request, response)),
                 expand(this._requestNextPage.bind(this)),
-                concatMap(result => result.response.hits.hits)
+                concatMap(result => result.response.hits.hits.map(hit => {
+                    return {
+                        meta: {
+                            total: result.response.hits.total
+                        },
+                        hit: hit
+                    };
+                }))
             );
     }
 
