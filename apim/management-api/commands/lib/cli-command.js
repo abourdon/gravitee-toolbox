@@ -234,4 +234,45 @@ class CliCommand {
 
 }
 
-module.exports = CliCommand;
+/**
+ * Base type for any CliCommand reporter (aka CliCommand subscriber)
+ *
+ * @author Aurelien Bourdon
+ */
+class CliCommandReporter {
+
+    constructor(cliCommand) {
+        this.cliCommand = cliCommand;
+    }
+
+    next(next) {
+        this.doNext(next);
+    }
+
+    doNext(next) {
+        throw new Error('No next action defined for this CliCommand reporter. CliCommandReporter#doNext() needs to be overridden');
+    }
+
+    error(error) {
+        this.doError(error);
+    }
+
+    doError(error) {
+        this.cliCommand.handleError(error).bind(this.cliCommand);
+    }
+
+    complete() {
+        this.doComplete();
+        this.cliCommand.displayInfo('Done.');
+    }
+
+    doComplete() {
+        // Nothing by default
+    }
+
+}
+
+module.exports = {
+    CliCommand: CliCommand,
+    CliCommandReporter: CliCommandReporter
+};
