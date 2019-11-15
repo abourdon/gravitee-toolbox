@@ -15,14 +15,29 @@ class ListUserConnections extends CliCommand {
             'list-user-connections',
             {
                 'from': {
-                    describe: "Start date from which start the search, in YYYY-MM-DDTHH:mm:ss.sssZ format",
+                    describe: 'Start date from which start the search, in YYYY-MM-DDTHH:mm:ss.sssZ format',
                     type: 'string',
                     demandOption: true
                 },
                 'to': {
-                    describe: "To date from which stop the search, in YYYY-MM-DDTHH:mm:ss.sssZ format (now by default)",
+                    describe: 'To date from which stop the search, in YYYY-MM-DDTHH:mm:ss.sssZ format (now by default)',
                     type: 'string'
                 },
+                'request-page-init': {
+                    describe: 'Page number of the first request (default 1)',
+                    type: 'number',
+                    default: 1
+                },
+                'request-page-delay': {
+                    describe: 'Delay between paged requests (in ms, default 0, means no delay)',
+                    type: 'number',
+                    default: 0
+                },
+                'request-page-size': {
+                    describe: 'Size of pages for each request (default 2000)',
+                    type: 'number',
+                    default: 2000
+                }
             }
         );
     }
@@ -38,6 +53,9 @@ class ListUserConnections extends CliCommand {
                         ManagementApi.EVENT_TYPE.USER_CONNECTED,
                         fromDate.getTime(),
                         toDate.getTime(),
+                        this.argv['request-page-init'],
+                        this.argv['request-page-size'],
+                        this.argv['request-page-delay']
                     )
                 }),
                 groupBy(event => event.properties.USER),

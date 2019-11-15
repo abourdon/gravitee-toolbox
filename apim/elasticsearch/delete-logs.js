@@ -23,7 +23,7 @@ class DeleteLogs extends ElasticSearchScript {
                     demandOption: true
                 },
                 'es-request-index': {
-                    describe: "Elastic search request index",
+                    describe: 'Elasticsearch request index to search (can be an index pattern as gravitee-request-2019.10.*)',
                     type: 'string',
                     demandOption: true
                 },

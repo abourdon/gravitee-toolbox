@@ -68,9 +68,9 @@ class ExtractApplicationQuality extends CliCommand {
                     type: 'array'
                 },
                 'elasticsearch-index': {
-                    describe: 'Elasticsearch request index',
+                    describe: 'Elasticsearch request index to search (can be an index pattern as gravitee-request-2019.10.*)',
                     type: 'string',
-                    default: 'gravitee-request-*'
+                    demandOption: true
                 }
             }
         );

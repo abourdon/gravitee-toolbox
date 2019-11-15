@@ -654,9 +654,10 @@ class ManagementApi {
      * @param to the end date to which select audit events (default now)
      * @param page the start page from which start audit event select (default 1)
      * @param size the page size (default 2000)
+     * @param delayBetweenRequests delay between paged requests to get audit events (default 0ms, means no delay)
      * @returns {Observable<unknown>} a stream of single audit events
      */
-    listAudits(eventType = undefined, from = undefined, to = new Date().getTime(), page = 1, size = 2000) {
+    listAudits(eventType = undefined, from = undefined, to = new Date().getTime(), page = 1, size = 2000, delayBetweenRequests = 0) {
         const initialRequest = {
             method: 'get',
             url: util.format('/audit'),
@@ -681,7 +682,15 @@ class ManagementApi {
                             const nextRequest = Object.assign({}, pagedResult.nextRequest);
                             nextRequest.qs.page++;
                             return new PagedResult(nextRequest, result);
-                        })
+                        }),
+                        // Apply delay between API emission
+                        concatMap(api => Rx
+                            .interval(delayBetweenRequests)
+                            .pipe(
+                                take(1),
+                                map(_second => api)
+                            )
+                        )
                     );
             },
             pagedResult => pagedResult.response.content

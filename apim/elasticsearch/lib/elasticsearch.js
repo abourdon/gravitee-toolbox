@@ -20,9 +20,9 @@ class ElasticSearch {
     }
 
     /**
-     * Search hits in the specified index corresponding to the specified terms for the specified time range.
+     * Search hits in the specified index pattern corresponding to the specified terms for the specified time range.
      *
-     * @param {string} elasticsearch index name
+     * @param {string} elasticsearch index name pattern
      * @param {string} time range lower bound
      * @param {string} time range upper bound
      * @param {map} search terms (optional)
@@ -30,7 +30,7 @@ class ElasticSearch {
      * @param {string} time key in index (default = "@timestamp")
      * @return a stream of Elasticsearch documents
      */
-    searchHits(indexName, from, to = 'now', searchTerms = [], pageSize = 100, timeKey = "@timestamp") {
+    searchHits(indexPattern, from, to = 'now', searchTerms = [], pageSize = 100, timeKey = "@timestamp") {
         var terms = Array.from(searchTerms)
             .map(([key, value]) => ({ "term": { [key]: { "value": value } } }))
             .reduce((acc, term) => acc.concat(term), []);
@@ -38,7 +38,7 @@ class ElasticSearch {
 
         const requestSettings = {
             method: 'get',
-            url: util.format('%s/_search', indexName),
+            url: util.format('%s/_search', indexPattern),
             body: {
               "size": pageSize,
               "query": {
