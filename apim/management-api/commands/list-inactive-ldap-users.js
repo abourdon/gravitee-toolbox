@@ -1,4 +1,4 @@
-const CliCommand = require('./lib/cli-command');
+const {CliCommand} = require('./lib/cli-command');
 const LdapClient = require('./lib/ldap-client');
 const Rx = require('rxjs');
 const { count, filter, flatMap, map, reduce } = require('rxjs/operators');

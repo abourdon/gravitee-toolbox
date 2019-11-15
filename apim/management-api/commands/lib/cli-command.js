@@ -242,6 +242,9 @@ class CliCommand {
 class CliCommandReporter {
 
     constructor(cliCommand) {
+        if (cliCommand === undefined) {
+            throw new Error('A CliCommandReporter cannot be instanciated without its associated CliCommand');
+        }
         this.cliCommand = cliCommand;
     }
 
