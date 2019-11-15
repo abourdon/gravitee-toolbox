@@ -64,7 +64,7 @@ class DeleteLogs extends ElasticSearchScript {
             [["_type", "request"], ["api", this.argv['api-id']]],
             this.argv['page-size']
          ).pipe(
-            map(hit => hit._id),
+            map(hit => hit.hit._id),
             bufferCount(this.argv['bulk-delete-size']),
             flatMap(hitIds => elasticsearch.bulkDelete(hitIds, this.argv['es-log-index'], 'log')),
             groupBy(deletedItem => deletedItem.status, deletedItem => deletedItem._id),

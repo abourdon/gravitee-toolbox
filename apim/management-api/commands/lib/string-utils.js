@@ -20,6 +20,30 @@ const INSENSITIVE_REGEX_FLAG = "i";
 class StringUtils {
 
     /**
+     * Do a String#search() according to given RegExp#flags
+     *
+     * @param text the text to search
+     * @param regex the regex to apply on text to search
+     * @param flags option to add to regex search
+     * @returns {number | never} same result as String#search
+     */
+    static search(text, regex, flags) {
+        return text.search(new RegExp(regex, flags));
+    }
+
+    /**
+     * Test if given regex matches on given text, by using optional flags
+     *
+     * @param text the text to test
+     * @param regex the regex to apply
+     * @param flags the optional flags to apply on regex search
+     * @returns {boolean} true if regex matches on text, false otherwise
+     */
+    static matches(text, regex, flags) {
+        return this.search(text, regex, INSENSITIVE_REGEX_FLAG) !== NO_RESULT_ON_STRING_SEARCH;
+    }
+
+    /**
      * Do a case insensitive String#search (equivalent with text.search(new RegExp(text, "i")))
      *
      * @param text the text to search
@@ -27,7 +51,7 @@ class StringUtils {
      * @returns {number | never} same result as String#search
      */
     static caseInsensitiveSearch(text, regex) {
-        return text.search(new RegExp(regex, INSENSITIVE_REGEX_FLAG));
+        return this.search(text, regex, INSENSITIVE_REGEX_FLAG);
     }
 
     /**
@@ -38,7 +62,20 @@ class StringUtils {
      * @returns {boolean} true if regex matches on text, false otherwise
      */
     static caseInsensitiveMatches(text, regex) {
-        return this.caseInsensitiveSearch(text, regex) !== NO_RESULT_ON_STRING_SEARCH;
+        return this.matches(text, regex, INSENSITIVE_REGEX_FLAG);
+    }
+
+    /**
+     * Give a comparison score of the two given strings, in alphabetical order
+     *
+     * @param left the first string to compare
+     * @param right the second string to compare
+     * @returns {number} -1 if left < right, 1 if left > right or 0 if equal
+     */
+    static compare(left, right) {
+        const lowerLeft = left.toLowerCase();
+        const lowerRight = right.toLowerCase();
+        return lowerLeft < lowerRight ? -1 : lowerLeft > lowerRight ? 1 : 0;
     }
 
 }

@@ -45,7 +45,7 @@ class ListRequests extends ElasticSearchScript {
             this.argv['to'],
             [["_type", "request"], ["api", this.argv['api-id']]]
         ).pipe(
-            map(hit => hit._id),
+            map(hit => hit.hit._id),
             toArray()
         ).subscribe(this.defaultSubscriber(
             requests => {
