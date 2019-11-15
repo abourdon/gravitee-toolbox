@@ -12,6 +12,9 @@ const EXPORT_EXCLUDE = {
     PAGES: 'pages',
     PLANS: 'plans'
 };
+const EVENT_TYPE = {
+    USER_CONNECTED: 'USER_CONNECTED'
+};
 
 /**
  * Gravitee.io APIM's Management API client instance.
@@ -629,6 +632,51 @@ class ManagementApi {
         return this._request(requestSettings);
     }
 
+    listAudits(eventType = undefined, from = undefined, to = new Date().getTime(), page = 1, size = 1000) {
+        const requestSettings = {
+            method: 'get',
+            url: util.format('/audit'),
+            qs: {
+                event: eventType,
+                from: from,
+                to: to,
+                page: page,
+                size: size
+            }
+        };
+        return this._requestAllPages(requestSettings);
+    }
+
+    /**
+     * Do an APIM paged request.
+     * This implies running multiple requests to APIM and concatenating responses.
+     *
+     * @param {object} request details of the paged request
+     * @return a stream of response items
+     */
+    _requestAllPages(request) {
+        return Rx
+            .of(new PagedResult(request))
+            .pipe(
+                expand(pagedResult => {
+                    if (pagedResult.response && pagedResult.response.content.length === 0) {
+                        return Rx.EMPTY;
+                    }
+                    return this
+                        ._request(pagedResult.request)
+                        .pipe(
+                            map(result => {
+                                const nextRequest = Object.assign({}, pagedResult.request);
+                                nextRequest.qs.page++;
+                                return new PagedResult(nextRequest, result);
+                            })
+                        )
+                }),
+                filter(pagedResult => pagedResult.response),
+                flatMap(pagedResult => pagedResult.response.content)
+            );
+    }
+
     /**
      * Do a request to the Management API
      *
@@ -689,9 +737,17 @@ ManagementApi.Settings = class {
     };
 };
 
+class PagedResult {
+    constructor(request, response) {
+        this.request = request;
+        this.response = response
+    }
+}
+
 module.exports = {
     Settings: ManagementApi.Settings,
     EXPORT_EXCLUDE: EXPORT_EXCLUDE,
+    EVENT_TYPE: EVENT_TYPE,
     createInstance: function (settings) {
         return new ManagementApi(settings);
     }
