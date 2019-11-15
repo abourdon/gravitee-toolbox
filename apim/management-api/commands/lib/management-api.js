@@ -462,7 +462,7 @@ class ManagementApi {
     /**
      * Get tenants currently configured in the platform
      *
-     * @returns {Observable<ObservedValueOf<*>>} the list of tenants currently configured in the platform
+     * @returns {Obser  vable<ObservedValueOf<*>>} the list of tenants currently configured in the platform
      */
     getTenants() {
         const requestSettings = {
@@ -632,8 +632,18 @@ class ManagementApi {
         return this._request(requestSettings);
     }
 
-    listAudits(eventType = undefined, from = undefined, to = new Date().getTime(), page = 1, size = 1000) {
-        const requestSettings = {
+    /**
+     * List all audit events based on predicate
+     *
+     * @param eventType the event type to select (e.g. EVENT_TYPE#USER_CONNECTED)
+     * @param from the start date from which select audit events
+     * @param to the end date to which select audit events (default now)
+     * @param page the start page from which start audit event select (default 1)
+     * @param size the page size (default 2000)
+     * @returns {Observable<unknown>} a stream of single audit events
+     */
+    listAudits(eventType = undefined, from = undefined, to = new Date().getTime(), page = 1, size = 2000) {
+        const initialRequest = {
             method: 'get',
             url: util.format('/audit'),
             qs: {
@@ -644,36 +654,43 @@ class ManagementApi {
                 size: size
             }
         };
-        return this._requestAllPages(requestSettings);
+        return this._requestAllPages(
+            initialRequest,
+            pagedResult => {
+                if (pagedResult.response && pagedResult.response.content.length === 0) {
+                    return Rx.EMPTY;
+                }
+                return this
+                    ._request(pagedResult.nextRequest)
+                    .pipe(
+                        map(result => {
+                            const nextRequest = Object.assign({}, pagedResult.nextRequest);
+                            nextRequest.qs.page++;
+                            return new PagedResult(nextRequest, result);
+                        })
+                    );
+            },
+            pagedResult => pagedResult.response.content
+        );
     }
 
     /**
      * Do an APIM paged request.
      * This implies running multiple requests to APIM and concatenating responses.
      *
-     * @param {object} request details of the paged request
-     * @return a stream of response items
+     * @param initialRequest the initial request that will be executed recursively
+     * @param recursiveRequest the process to execute recursively, that will be used by the Rx#expand() operator
+     * @param resultsToEmit the result list to select for emission from PagedResult#response
+     * @returns {Observable<any | Subscribable<never> extends ObservableInput<infer T> ? T : never | {}>} a stream of single items
+     * @private
      */
-    _requestAllPages(request) {
+    _requestAllPages(initialRequest, recursiveRequest, resultsToEmit) {
         return Rx
-            .of(new PagedResult(request))
+            .of(new PagedResult(initialRequest))
             .pipe(
-                expand(pagedResult => {
-                    if (pagedResult.response && pagedResult.response.content.length === 0) {
-                        return Rx.EMPTY;
-                    }
-                    return this
-                        ._request(pagedResult.request)
-                        .pipe(
-                            map(result => {
-                                const nextRequest = Object.assign({}, pagedResult.request);
-                                nextRequest.qs.page++;
-                                return new PagedResult(nextRequest, result);
-                            })
-                        )
-                }),
+                expand(recursiveRequest),
                 filter(pagedResult => pagedResult.response),
-                flatMap(pagedResult => pagedResult.response.content)
+                flatMap(resultsToEmit)
             );
     }
 
@@ -738,8 +755,8 @@ ManagementApi.Settings = class {
 };
 
 class PagedResult {
-    constructor(request, response) {
-        this.request = request;
+    constructor(nextRequest, response) {
+        this.nextRequest = nextRequest;
         this.response = response
     }
 }

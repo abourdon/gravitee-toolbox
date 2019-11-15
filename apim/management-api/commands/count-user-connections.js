@@ -1,9 +1,7 @@
 const CliCommand = require('./lib/cli-command');
 const ManagementApi = require('./lib/management-api');
-const {flatMap, tap, take, groupBy, count} = require('rxjs/operators');
+const {flatMap, groupBy, count} = require('rxjs/operators');
 const util = require('util');
-
-const NO_DELAY_PERIOD = 0;
 
 /**
  * Count number of connection to the APIM (both portal and management console)
