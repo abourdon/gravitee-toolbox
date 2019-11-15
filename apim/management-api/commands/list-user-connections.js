@@ -71,7 +71,7 @@ class ListUserConnectionsCSVReporter extends CliCommandReporter {
             '%s, %s, %s, %s',
             user.id,
             user.displayName,
-            user.email,
+            user.email ? user.email : 'N/A',
             user.source
         )));
     }
