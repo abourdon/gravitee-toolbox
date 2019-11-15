@@ -1,4 +1,4 @@
-const CliCommand = require('./lib/cli-command');
+const {CliCommand} = require('./lib/cli-command');
 const { filter, flatMap, groupBy, map, toArray } = require('rxjs/operators');
 const util = require('util');
 

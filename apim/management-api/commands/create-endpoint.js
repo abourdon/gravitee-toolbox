@@ -1,4 +1,4 @@
-const CliCommand = require('./lib/cli-command');
+const {CliCommand} = require('./lib/cli-command');
 const StringUtils = require('./lib/string-utils');
 const ManagementApi = require('./lib/management-api');
 const Rx = require('rxjs');

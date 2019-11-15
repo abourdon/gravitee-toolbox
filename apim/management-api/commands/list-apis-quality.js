@@ -1,4 +1,4 @@
-const CliCommand = require('./lib/cli-command');
+const {CliCommand} = require('./lib/cli-command');
 const { convertQualityCriteria } = require('./lib/quality-criteria-converter');
 const { flatMap, map } = require('rxjs/operators');
 const util = require('util');
