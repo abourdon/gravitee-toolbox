@@ -523,6 +523,20 @@ class ManagementApi {
     }
 
     /**
+     * Get information about the given user identifier
+     *
+     * @param userId the user identifier from which getting user information
+     * @returns {Observable<ObservedValueOf<*>>} the found user
+     */
+    getUser(userId) {
+        const requestSettings = {
+            method: 'get',
+            url: util.format('users/%s', userId)
+        };
+        return this._request(requestSettings);
+    }
+
+    /**
      * Transfer ownership of the given element referenced by its id and type (api or application)
      *
      * @param {string} api or application ID

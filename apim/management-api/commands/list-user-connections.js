@@ -1,18 +1,18 @@
-const CliCommand = require('./lib/cli-command');
+const {CliCommand, CliCommandReporter} = require('./lib/cli-command');
 const ManagementApi = require('./lib/management-api');
 const {flatMap, groupBy, count} = require('rxjs/operators');
 const util = require('util');
 
 /**
- * Count number of connection to the APIM (both portal and management console)
+ * List user connections during a given timeslot. Result is in CSV format.
  *
  * @author Aurelien Bourdon
  */
-class CountUserConnections extends CliCommand {
+class ListUserConnections extends CliCommand {
 
     constructor() {
         super(
-            'count-portal-connections',
+            'list-user-connections',
             {
                 'from': {
                     describe: "Start date from which start the search, in YYYY-MM-DDTHH:mm:ss.sssZ format",
@@ -41,18 +41,41 @@ class CountUserConnections extends CliCommand {
                     )
                 }),
                 groupBy(event => event.properties.USER),
-                count()
+                flatMap(userEvent => managementApi.getUser(userEvent.key))
             )
-            .subscribe(this.defaultSubscriber(
-                count => this.displayRaw(util.format(
-                    'Number of distinct connected users from "%s" to "%s": %s',
-                    fromDate.toISOString(),
-                    toDate.toISOString(),
-                    count
-                ))
-            ));
+            .subscribe(new ListUserConnectionsCSVReporter(this));
     }
 
 }
 
-new CountUserConnections().run();
+/**
+ * Report results in CSV format
+ */
+class ListUserConnectionsCSVReporter extends CliCommandReporter {
+
+    constructor(cliCommand) {
+        super(cliCommand);
+        this.users = [];
+    }
+
+    doNext(user) {
+        this.users.push(user);
+    }
+
+    doComplete() {
+        this.cliCommand.displayInfo('List of user connections (in CSV format):');
+        // CSV header
+        this.cliCommand.displayRaw('Id, Display name, Email, Source');
+        // CSV line users
+        this.users.forEach(user => this.cliCommand.displayRaw(util.format(
+            '%s, %s, %s, %s',
+            user.id,
+            user.displayName,
+            user.email,
+            user.source
+        )));
+    }
+
+}
+
+new ListUserConnections().run();
