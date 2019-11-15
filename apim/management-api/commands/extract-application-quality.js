@@ -1,4 +1,4 @@
-const CliCommand = require('./lib/cli-command');
+const {CliCommand, CliCommandReporter} = require('./lib/cli-command');
 const ElasticSearch = require('../../elasticsearch/lib/elasticsearch');
 const {QualityCriterion, convertQualityCriteria} = require('./lib/quality-criteria-converter');
 const StringUtils = require('./lib/string-utils');
@@ -49,11 +49,15 @@ class ExtractApplicationQuality extends CliCommand {
                     type: 'boolean',
                     default: false
                 },
-                'runtime-duration': {
-                    describe: 'Runtime time range duration',
+                'evaluate-runtime-from': {
+                    describe: 'Start date for runtime evaluation (in ElasticSearch date format, https://www.elastic.co/guide/en/elasticsearch/reference/6.6/date.html)',
                     type: 'string',
-                    choices: ['1w', '1M'], // Choices are limited by Gravitee health availability results
-                    default: '1M'
+                    default: 'now-1M'
+                },
+                'evaluate-runtime-to': {
+                    describe: 'To date for runtime evaluation (in ElasticSearch date format, https://www.elastic.co/guide/en/elasticsearch/reference/6.6/date.html)',
+                    type: 'string',
+                    default: 'now'
                 },
                 'elasticsearch-url': {
                     describe: 'Elasticsearch base URL',
@@ -90,27 +94,15 @@ class ExtractApplicationQuality extends CliCommand {
                             byName: this.argv['filter-by-name']
                         },
                         this.argv['delay-period'],
-                        LIST_APPLICATIONS_TIMEOUT)
+                        LIST_APPLICATIONS_TIMEOUT
+                    )
                 ),
 
                 // Start Application quality evaluation
                 tap(app => this.displayInfo(util.format('Get quality metrics for Application "%s" (%s)', app.name, app.id))),
                 flatMap(app => this.evaluateCriteria(app, managementApi, elasticsearch)),
-                reduce((acc, criteria) => acc.concat(criteria), [])
             )
-            .subscribe(this.defaultSubscriber(
-                appsQuality => {
-                    this.displayInfo('CSV content:');
-                    this.displayRaw('Application id,Application name,' + this.getEnabledCriteria().map(criteria => criteria.reference).join(CSV_SEPARATOR));
-                    appsQuality.forEach((appQuality) =>
-                        this.displayRaw(
-                            appQuality.app.id + CSV_SEPARATOR +
-                            appQuality.app.name + CSV_SEPARATOR +
-                            appQuality.quality.map(criteria => criteria.complied).join(CSV_SEPARATOR)
-                        )
-                    );
-                }
-            ));
+            .subscribe(new ExtractApplicationQualityCSVReporter(this));
     }
 
     getCriteria() {
@@ -191,8 +183,8 @@ class ExtractApplicationQuality extends CliCommand {
     evaluateUsage(app, managementApi, elasticsearch) {
         return elasticsearch.searchHits(
             this.argv['elasticsearch-index'],
-            util.format('now-%s', this.argv['runtime-duration']),
-            'now',
+            this.argv['evaluate-runtime-from'],
+            this.argv['evaluate-runtime-to'],
             [['application', app.id]],
             ONLY_ONE_ES_RESULT
         ).pipe(
@@ -203,6 +195,31 @@ class ExtractApplicationQuality extends CliCommand {
 
     runtimeEvaluationEnabled() {
         return this.argv['evaluate-runtime'];
+    }
+
+}
+
+class ExtractApplicationQualityCSVReporter extends CliCommandReporter {
+
+    constructor(cliCommand) {
+        super(cliCommand);
+        this.qualityApps = [];
+    }
+
+    doNext(next) {
+        this.qualityApps.push(next);
+    }
+
+    doComplete() {
+        this.cliCommand.displayInfo('Applications quality, in CSV format:');
+        this.cliCommand.displayRaw('Application id,Application name,' + this.cliCommand.getEnabledCriteria().map(criteria => criteria.reference).join(CSV_SEPARATOR));
+        this.qualityApps.forEach((appQuality) =>
+            this.cliCommand.displayRaw(
+                appQuality.app.id + CSV_SEPARATOR +
+                appQuality.app.name + CSV_SEPARATOR +
+                appQuality.quality.map(criteria => criteria.complied).join(CSV_SEPARATOR)
+            )
+        );
     }
 
 }
