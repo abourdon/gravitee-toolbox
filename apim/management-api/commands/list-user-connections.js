@@ -53,12 +53,17 @@ class ListUserConnections extends CliCommand {
  */
 class ListUserConnectionsCSVReporter extends CliCommandReporter {
 
+    static formatEmail(email) {
+        return email ? email : 'N/A';
+    }
+
     constructor(cliCommand) {
         super(cliCommand);
         this.users = [];
     }
 
     doNext(user) {
+        this.cliCommand.displayInfo(util.format('User %s (%s) found', user.displayName, ListUserConnectionsCSVReporter.formatEmail(user.email)));
         this.users.push(user);
     }
 
@@ -71,7 +76,7 @@ class ListUserConnectionsCSVReporter extends CliCommandReporter {
             '%s, %s, %s, %s',
             user.id,
             user.displayName,
-            user.email ? user.email : 'N/A',
+            ListUserConnectionsCSVReporter.formatEmail(user.email),
             user.source
         )));
     }
