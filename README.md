@@ -1,6 +1,6 @@
-# Set of useful tools (scripts, cli...) when using the [Gravitee.io](https://gravitee.io/) API Platform
+# Set of useful tools (CLI, scripts...) when using the [Gravitee.io](https://gravitee.io/) API Platform
 
-This project is organized as follows:
+Available toolbox by [Gravitee.io API Platform](https://gravitee.io/)'s components:
 
 | Directory             | Description                                                                                   |
 | --------------------- | --------------------------------------------------------------------------------------------  |

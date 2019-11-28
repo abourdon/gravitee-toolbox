@@ -1,8 +1,8 @@
 # [Gravitee.io API Management](https://gravitee.io/products/apim/) (APIM) dedicated toolbox
 
-This directory is organized as follows:
+Features list, by directory:
 
 | Directory                                 | Description                                                           |
 | ----------------------------------------- | --------------------------------------------------------------------- |
-| [management-api](./management-api)        | APIM's Management API dedicated tools                                 |
-| [mongodb](./mongodb)                      | APIM's MongoDB dedicated tools                                        |
+| [cli](./cli)                              | APIM's Management API Command Line Interface (CLI)                    |
+| [mongodb](./mongodb)                      | APIM's MongoDB dedicated script                                       |
