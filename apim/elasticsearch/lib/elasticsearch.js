@@ -57,6 +57,30 @@ class ElasticSearch {
         return this._requestAllPages(requestSettings);
     }
 
+    aggregateHits(indexName, aggregation, from, to = 'now', searchTerms = [], timeKey = "@timestamp") {
+        const terms = Array.from(searchTerms)
+            .map(([key, value]) => ({ "term": { [key]: { "value": value } } }))
+            .reduce((acc, term) => acc.concat(term), []);
+        terms.push({"range":{[timeKey]:{"gte":from,"lte":to}}});
+
+        const requestSettings = {
+            method: 'get',
+            url: util.format('%s/_search', indexName),
+            body: {
+              "size": 0,
+              "query": {
+                "bool": {
+                  "must": [
+                    terms
+                  ]
+                }
+              },
+              "aggs" : aggregation
+            }
+        };
+        return this._request(requestSettings);
+    }
+
     /**
      * Deletes hits from the specified index corresponding to the specified terms for the specified time range.
      *
