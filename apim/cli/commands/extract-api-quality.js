@@ -15,28 +15,9 @@ const API_TYPES_VIEW_NAMES = {
     'experience-apis': 'Experience'
 };
 const DEFAULT_API_TYPE = 'System';
-/*
- * API name is composed of:
- * - eventually a namespace (potentially multiple words)
- * - a resource or provider (potentially multiple words)
- * - eventually a country
- * Example: Multiple words namespace - Resource or provider - Country
- */
-const API_NAME_REGEX = /^(\w+( \w+)* \- )?\w+( \w+)*( \- \w+)?$/;
-/*
- * Version is prefixed with a "v" and composed of one or more digits
- */
-const API_VERSION_REGEX = /v\d+/;
-/*
- * Context path is composed of:
- * - a context (e.g. "corp" or country in 2 letters)
- * - eventually a namespace (potentially multiple words separated with - or _)
- * - a version starting with "v" and ending with digits
- * - a resource (potentially multiple words separated with - or _)
- * - eventually a sub resource (potentially multiple words separated with - or _)
- * Example: /corp/composed-namespace/v1/composed-resource/sub-resource
- */
-const API_CONTEXT_PATH_REGEX = /^\/(corp|fr|lu|pl|hu|ro|pt|uk|ru|es)(\/\w+((-|_)\w+)?)?\/v\d+\/\w+((-|_)\w+)?(\/\w+((-|_)\w+)?)?$/;
+const DEFAULT_API_NAME_REGEX = /^.*$/;
+const DEFAULT_API_VERSION_REGEX = /^\d+$/;
+const DEFAULT_API_CONTEXT_PATH_REGEX = /^(\/.+)+$/;
 /*
  * Data classification labels are composed of:
  * - a confidentiality label as C0, C1, C2 or C3
@@ -71,9 +52,9 @@ const RUNTIME_THRESHOLDS = {
     }
 }
 
-const matchNamingConvention = function(valueSelector, regex, apiDetail) {
-    return apiDetail => {
-        const matches = valueSelector(apiDetail).match(regex);
+const matchNamingConvention = function(valueSelector, regexExtractor, apiDetail, command) {
+    return (apiDetail, command) => {
+        const matches = valueSelector(apiDetail).match(regexExtractor(command));
         return matches != null && matches.length > 0;
     }
 }
@@ -94,6 +75,7 @@ const CRITERIA = {
     contextPathNamingConvention: {reference: "DF18", description: "Context-path's naming convention complied"},
     endpointsNamingConvention: {reference: "DF19", description: "Groups of endpoints and endpoints naming convention complied"},
     healthCheckActive: {reference: "DF20", description: "Health-check activated"},
+    apiTypeViewDefined: {reference: "DF22", description: "API type view defined"},
     apiUsage: {reference: "R00", description: "API usage at runtime"},
     responseTimeMedian: {reference: "R01", description: "Median response time"},
     responseTime95Percentile: {reference: "R02", description: "95th percentile response time"},
@@ -105,11 +87,11 @@ const CRITERIA = {
 const apiDetailsCriteriaEvaluators = [
     {
         criterion: CRITERIA.nameNamingConvention,
-        evaluate: matchNamingConvention(api => api.name, API_NAME_REGEX)
+        evaluate: matchNamingConvention(api => api.name, command => command.argv['name-regex'])
     },
     {
         criterion: CRITERIA.versionNamingConvention,
-        evaluate: matchNamingConvention(api => api.version, API_VERSION_REGEX)
+        evaluate: matchNamingConvention(api => api.version, command => command.argv['version-regex'])
     },
     {
         criterion: CRITERIA.descriptionMinLength,
@@ -124,7 +106,7 @@ const apiDetailsCriteriaEvaluators = [
     {
         criterion: CRITERIA.dataClassificationLabels,
         evaluate: api => [CONFIDENTIALITY_LABEL_REGEX, INTEGRITY_LABEL_REGEX, AVAILABILITY_LABEL_REGEX]
-                                    .map(regex => matchNamingConvention(label => label, regex))
+                                    .map(regex => matchNamingConvention(label => label, command => regex))
                                     .map(regexEvaluator => api.labels !== undefined &&
                                                            api.labels.filter(label => regexEvaluator(label)).length == 1)
                                     .reduce((acc, complied) => acc && complied, true)
@@ -136,7 +118,7 @@ const apiDetailsCriteriaEvaluators = [
     },
     {
         criterion: CRITERIA.viewsDefined,
-        evaluate: api => api.views !== undefined && api.views.length > 0,
+        evaluate: api => api.views !== undefined && api.views.filter(view => !Object.keys(API_TYPES_VIEW_NAMES).includes(view)).length > 0,
         enabled: script => script.graviteeAutomationOverrideEnabled()
     },
     {
@@ -155,11 +137,14 @@ const apiDetailsCriteriaEvaluators = [
     },
     {
         criterion: CRITERIA.contextPathNamingConvention,
-        evaluate: matchNamingConvention(api => api.proxy.context_path, API_CONTEXT_PATH_REGEX)
+        evaluate: matchNamingConvention(api => api.proxy.context_path, command => command.argv['context-path-regex'])
     },
     {
         criterion: CRITERIA.endpointsNamingConvention,
         evaluate: function(api) {
+            if (api.proxy.groups.length === 1) {
+                return true;
+            }
             const nonCompliantEndpoints = api.proxy.groups.filter(group =>
                 group.endpoints !== undefined &&
                 group.endpoints.filter(endpoint => !endpoint.name.startsWith(group.name + " - ")).length > 0);
@@ -170,6 +155,10 @@ const apiDetailsCriteriaEvaluators = [
         criterion: CRITERIA.healthCheckActive,
         evaluate: api => api.services !== undefined && api.services["health-check"] !== undefined && api.services["health-check"].enabled,
         enabled: script => script.graviteeAutomationOverrideEnabled()
+    },
+    {
+        criterion: CRITERIA.apiTypeViewDefined,
+        evaluate: api => api.views !== undefined && api.views.filter(view => Object.keys(API_TYPES_VIEW_NAMES).includes(view)).length == 1
     },
 ];
 
@@ -221,6 +210,21 @@ class ExtractApiQuality extends CliCommand {
                     describe: 'Elasticsearch request index',
                     type: 'string',
                     default: 'gravitee-request-*'
+                },
+                'name-regex': {
+                    describe: 'Regex for API name convention criterion evaluation',
+                    type: 'string',
+                    default: DEFAULT_API_NAME_REGEX
+                },
+                'version-regex': {
+                    describe: 'Regex for API version convention criterion evaluation',
+                    type: 'string',
+                    default: DEFAULT_API_VERSION_REGEX
+                },
+                'context-path-regex': {
+                    describe: 'Regex for API context-path convention criterion evaluation',
+                    type: 'string',
+                    default: DEFAULT_API_CONTEXT_PATH_REGEX
                 }
             }
         );
@@ -287,7 +291,7 @@ class ExtractApiQuality extends CliCommand {
             .export(apiId).pipe(
                 flatMap(apiDetail => Rx.from(apiDetailsCriteriaEvaluators).pipe(
                         filter(evaluator => evaluator.enabled === undefined || evaluator.enabled(this)),
-                        map(evaluator => new QualityCriterion(evaluator.criterion.description, evaluator.criterion.reference, evaluator.evaluate(apiDetail))),
+                        map(evaluator => new QualityCriterion(evaluator.criterion.description, evaluator.criterion.reference, evaluator.evaluate(apiDetail, this))),
                         reduce((acc, criteria) => acc.concat(criteria), [])
                 ))
             );
@@ -324,7 +328,7 @@ class ExtractApiQuality extends CliCommand {
         return managementApi.getApi(apiId).pipe(
             map(api => {
                 if (api.labels !== undefined) {
-                    var matches = api.labels.filter(label => matchNamingConvention(label => label, AVAILABILITY_LABEL_REGEX)(label));
+                    var matches = api.labels.filter(label => matchNamingConvention(label => label, command => AVAILABILITY_LABEL_REGEX)(label));
                     if (matches.length === 1) {
                         return matches[0];
                     }
