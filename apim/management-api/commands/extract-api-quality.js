@@ -1,5 +1,5 @@
-const {CliCommand} = require('./lib/cli-command');
-const ElasticSearch = require('../../elasticsearch/lib/elasticsearch');
+const { CliCommand } = require('./lib/cli-command');
+const ElasticSearch = require('./lib/elasticsearch');
 const { QualityCriterion, convertQualityCriteria } = require('./lib/quality-criteria-converter');
 const Rx = require('rxjs')
 const { filter, flatMap, map, reduce, tap } = require('rxjs/operators');
