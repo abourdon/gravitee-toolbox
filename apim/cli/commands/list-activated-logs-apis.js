@@ -1,4 +1,4 @@
-const {CliCommand} = require('./lib/cli-command');
+const {CliCommand, CsvCliCommandReporter} = require('./lib/cli-command');
 const Rx = require('rxjs')
 const { filter, flatMap, map } = require('rxjs/operators');
 const util = require('util');
@@ -56,10 +56,17 @@ class ListActivatedLogsApis extends CliCommand {
                     })
                 )),
                 flatMap(api => this.disableLogs(managementApi, api)),
+                map(api => [
+                    api.id,
+                    api.name,
+                    api.proxy.logging.condition
+                ])
             )
-            .subscribe(this.defaultSubscriber(api => {
-                this.displayRaw(util.format('%s (%s) - Logging condition: %s', api.name, api.id, api.proxy.logging.condition));
-            }));
+            .subscribe(new CsvCliCommandReporter([
+                'API ID',
+                'API name',
+                'Logging condition'
+            ], this));
     }
 
     isLoggingConditionActive(condition) {
@@ -80,7 +87,7 @@ class ListActivatedLogsApis extends CliCommand {
             return Rx.of(api);
         }
         if (!api.is_synchronized) {
-            this.displayRaw(util.format('Logs for API %s (%s) have not been disabled: last changes have not been deployed', api.name, api.id));
+            this.displayWarning(util.format('Logs for API %s (%s) have not been disabled: last changes have not been deployed', api.name, api.id));
             return Rx.of(api);
         }
         delete api.is_synchronized;

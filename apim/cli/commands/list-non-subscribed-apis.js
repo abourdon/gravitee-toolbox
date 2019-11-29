@@ -1,6 +1,5 @@
-const {CliCommand} = require('./lib/cli-command');
-const { filter, flatMap, map } = require('rxjs/operators');
-const util = require('util');
+const {CliCommand, CsvCliCommandReporter} = require('./lib/cli-command');
+const {filter, flatMap, map} = require('rxjs/operators');
 
 const NO_DELAY_PERIOD = 0;
 
@@ -31,23 +30,34 @@ class ListNonSubscribedApis extends CliCommand {
         managementApi
             .login(this.argv['username'], this.argv['password'])
             .pipe(
+                // List APIs by getting basic information
                 flatMap(_token => managementApi.listApisBasics({
-                            byName: this.argv['filter-by-name'],
-                            byContextPath: this.argv['filter-by-context-path']
-                        }, NO_DELAY_PERIOD)),
+                    byName: this.argv['filter-by-name'],
+                    byContextPath: this.argv['filter-by-context-path']
+                }, NO_DELAY_PERIOD)),
+
+                // Only keep those without subscription
                 flatMap(api => managementApi.getApiSubscriptions(api.id).pipe(
                     filter(subscriptions => subscriptions.data.length == 0),
                     map(subscriptions => api)
-                ))
-            )
-            .subscribe(this.defaultSubscriber(
-                api => this.displayRaw(util.format('[%s, %s, %s <%s>] %s',
+                )),
+
+                // Finally format result in order for CsvCliCommandReporter
+                map(api => [
                     api.id,
+                    api.name,
                     api.context_path,
                     api.owner.displayName,
-                    api.owner.email,
-                    api.name
-                ))
+                    api.owner.email
+                ])
+            )
+            .subscribe(new CsvCliCommandReporter([
+                    'API id',
+                    'API name',
+                    'API context path',
+                    'API owner name',
+                    'API owner email'
+                ], this
             ));
     }
 }

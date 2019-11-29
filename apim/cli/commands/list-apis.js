@@ -1,6 +1,5 @@
-const {CliCommand} = require('./lib/cli-command');
-const {flatMap} = require('rxjs/operators');
-const util = require('util');
+const {CliCommand, CsvCliCommandReporter} = require('./lib/cli-command');
+const {flatMap, map} = require('rxjs/operators');
 
 const NO_DELAY_PERIOD = 0;
 
@@ -54,6 +53,7 @@ class ListApis extends CliCommand {
         managementApi
             .login(this.argv['username'], this.argv['password'])
             .pipe(
+                // List APIs according to filters
                 flatMap(_token => {
                     return this.hasBasicsFiltersOnly() ?
                         managementApi.listApisBasics({
@@ -70,17 +70,25 @@ class ListApis extends CliCommand {
                             byPlanName: this.argv['filter-by-plan-name'],
                             byPolicyTechnicalName: this.argv['filter-by-policy-technical-name']
                         });
-                })
-            )
-            .subscribe(this.defaultSubscriber(
-                api => this.displayRaw(util.format('[%s, %s, %s <%s>] %s',
+                }),
+
+                // Format result so that it can be handle by CsvCliCommandReporter
+                map(api => [
                     api.id,
+                    api.name,
                     api.context_path,
                     api.owner.displayName,
-                    api.owner.email,
-                    api.name
-                ))
-            ));
+                    api.owner.email
+                ])
+            )
+            .subscribe(new CsvCliCommandReporter([
+                'API id',
+                'API name',
+                'API context path',
+                'API owner name',
+                'API owner email'
+            ], this));
+
     }
 
     hasBasicsFiltersOnly() {
