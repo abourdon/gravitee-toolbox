@@ -25,7 +25,9 @@ class CreateEndpoint extends CliCommand {
 
     constructor() {
         super(
-            'create-endpoint', {
+            'create-endpoint',
+            'Create an API endpoint',
+            {
                 'filter-by-name': {
                     describe: "Filter APIs against their name (insensitive regex)"
                 },

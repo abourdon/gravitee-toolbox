@@ -1,20 +1,22 @@
 const {CliCommand} = require('./lib/cli-command');
-const { flatMap, toArray, map } = require('rxjs/operators');
-const { throwError } = require('rxjs');
+const {flatMap, toArray, map} = require('rxjs/operators');
+const {throwError} = require('rxjs');
 const util = require('util');
-const fsp = require('fs').promises
+const fsp = require('fs').promises;
 const Rx = require('rxjs');
 
 /**
  * Import existing API (update) depending a search. Import only if search returns exactly one result.
- * 
+ *
  * @author Soann Dewasme
  */
 class ImportApi extends CliCommand {
 
     constructor() {
         super(
-            'import-api', {
+            'import-api',
+            'Import existing API (update) depending a search. Import only if search returns exactly one result',
+            {
                 'f': {
                     alias: "filepath",
                     describe: "File path containing API definition to import",
@@ -68,28 +70,28 @@ class ImportApi extends CliCommand {
             .pipe(
                 flatMap(_token =>
                     Rx.from(fsp.readFile(this.argv['filepath'], this.argv['encoding']))
-                    .pipe(
-                        map(content => {
-                            var apiFilters = {
-                                 byName: this.argv['filter-by-name'],
-                                 byContextPath: this.argv['filter-by-context-path'],
-                                 byEndpointGroupName: this.argv['filter-by-endpoint-group-name'],
-                                 byEndpointName: this.argv['filter-by-endpoint-name'],
-                                 byEndpointTarget: this.argv['filter-by-endpoint-target']
-                             };
-                             if (!this.argv['new'] && !this._hasDefinedFilters(apiFilters)) {
-                                const jsonContent = JSON.parse(content);
-                                this.displayInfo(util.format("No defined filters. Use context path from import file: %s", jsonContent.proxy.context_path));
-                                apiFilters.byContextPath = util.format("^%s$", jsonContent.proxy.context_path);
-                             }
-                             return new ImportContext(_token, content, apiFilters);
-                        })
-                    )
+                        .pipe(
+                            map(content => {
+                                var apiFilters = {
+                                    byName: this.argv['filter-by-name'],
+                                    byContextPath: this.argv['filter-by-context-path'],
+                                    byEndpointGroupName: this.argv['filter-by-endpoint-group-name'],
+                                    byEndpointName: this.argv['filter-by-endpoint-name'],
+                                    byEndpointTarget: this.argv['filter-by-endpoint-target']
+                                };
+                                if (!this.argv['new'] && !this._hasDefinedFilters(apiFilters)) {
+                                    const jsonContent = JSON.parse(content);
+                                    this.displayInfo(util.format("No defined filters. Use context path from import file: %s", jsonContent.proxy.context_path));
+                                    apiFilters.byContextPath = util.format("^%s$", jsonContent.proxy.context_path);
+                                }
+                                return new ImportContext(_token, content, apiFilters);
+                            })
+                        )
                 ),
                 flatMap(context => {
                     if (this.argv['new']) {
                         this.displayInfo("Create new API from import file");
-                        return Rx.of(Object.assign({ content: context.importedFileContent, id: null }))
+                        return Rx.of(Object.assign({content: context.importedFileContent, id: null}))
                     }
 
                     return managementApi.listApisBasics(context.apiFilters)
@@ -106,7 +108,7 @@ class ImportApi extends CliCommand {
                                     return throwError(msg);
                                 }
                                 this.displayInfo(util.format("Found API %s", apis[0].id));
-                                return Rx.of(Object.assign({ content: context.importedFileContent, id: apis[0].id }));
+                                return Rx.of(Object.assign({content: context.importedFileContent, id: apis[0].id}));
                             })
                         )
                 }),
@@ -118,17 +120,18 @@ class ImportApi extends CliCommand {
                         )
                 )
             ).subscribe(
-                this.defaultSubscriber(
-                    () => { },
-                    error => {
-                        const errorMessage = error.hasOwnProperty('message') && error.hasOwnProperty('response')
-                            ? util.format('%s. Response body is <%s>)', error.message, util.inspect(error.response.data))
-                            : error;
-                        this.displayError(errorMessage);
-                        process.exit(1);
-                    }
-                )
-            );
+            this.defaultSubscriber(
+                () => {
+                },
+                error => {
+                    const errorMessage = error.hasOwnProperty('message') && error.hasOwnProperty('response')
+                        ? util.format('%s. Response body is <%s>)', error.message, util.inspect(error.response.data))
+                        : error;
+                    this.displayError(errorMessage);
+                    process.exit(1);
+                }
+            )
+        );
     }
 
     /*
@@ -150,6 +153,6 @@ ImportContext = class {
         this.importedFileContent = importedFileContent;
         this.apiFilters = apiFilters;
     }
-}
+};
 
 new ImportApi().run();

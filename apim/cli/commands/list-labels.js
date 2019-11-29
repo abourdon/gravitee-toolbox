@@ -3,7 +3,7 @@ const {filter, flatMap, groupBy, map, toArray} = require('rxjs/operators');
 const Rx = require('rxjs');
 
 /**
- * List labels defined on APIs.
+ * List labels defined on APIs, in CSV format.
  *
  * @author Alexandre Carbenay
  */
@@ -11,7 +11,8 @@ class ListLabels extends CliCommand {
 
     constructor() {
         super(
-            'list-labels'
+            'list-labels',
+            'List labels defined on APIs, in CSV format'
         );
     }
 

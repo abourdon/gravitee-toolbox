@@ -1,6 +1,6 @@
 const {CliCommand} = require('./lib/cli-command');
 const Rx = require('rxjs')
-const { filter, flatMap, map, reduce, tap } = require('rxjs/operators');
+const {filter, flatMap, map, reduce, tap} = require('rxjs/operators');
 const util = require('util');
 
 const NO_DELAY_PERIOD = 0;
@@ -19,18 +19,20 @@ class ListApisWithDirectMembers extends CliCommand {
     constructor() {
         super(
             'list-apis-with-direct-members',
-             {
-                 'delete-members': {
-                     describe: "Indicate whether the script execution must delete members when possible",
-                     type: 'boolean',
-                     default: false
-                 },
-                 'ask-for-approval': {
-                     describe: "Ask for user approval before deleting members. This option is not used if delete-members is set to false",
-                     type: 'boolean',
-                     default: true
-                 }
-             }
+            'List all registered APIs with multiple members by displaying their name, context path, owner name and owner email, ' +
+            'plus some information about the members already existing in groups associated to API and remaining members',
+            {
+                'delete-members': {
+                    describe: "Indicate whether the script execution must delete members when possible",
+                    type: 'boolean',
+                    default: false
+                },
+                'ask-for-approval': {
+                    describe: "Ask for user approval before deleting members. This option is not used if delete-members is set to false",
+                    type: 'boolean',
+                    default: true
+                }
+            }
         );
     }
 
@@ -159,9 +161,9 @@ class ListApisWithDirectMembers extends CliCommand {
                 map(memberId => Object.assign({api: apiMembers.api.name, member: memberId}))
             ))
         )
-        .subscribe(this.defaultSubscriber(apiMember => this.displayRaw(
-            util.format('Member with ID %s deleted from API %s', apiMember.member, apiMember.api)
-        )));
+            .subscribe(this.defaultSubscriber(apiMember => this.displayRaw(
+                util.format('Member with ID %s deleted from API %s', apiMember.member, apiMember.api)
+            )));
     }
 }
 

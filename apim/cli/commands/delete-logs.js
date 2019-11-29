@@ -12,6 +12,7 @@ class DeleteLogs extends CliCommand {
     constructor() {
         super(
             'delete-logs',
+            'Delete detailed API logs, if necessary',
             {
                 'elasticsearch-url': {
                     describe: 'Elasticsearch base URL',

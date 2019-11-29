@@ -5,7 +5,7 @@ const util = require('util');
 const NO_DELAY_PERIOD = 0;
 
 /**
- * Count all registered applications.
+ * Count number of available Applications for the given user
  *
  * @author Alexandre Carbenay
  */
@@ -13,7 +13,8 @@ class CountApplications extends CliCommand {
 
     constructor() {
         super(
-            'count-applications'
+            'count-applications',
+            'Count number of available Applications for the given user',
         );
     }
 

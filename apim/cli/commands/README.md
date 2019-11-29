@@ -37,36 +37,16 @@ For more details about `[OPTIONS]`, ask for help:
 $ node <script>.js -h
 ```
 
-## CLI command list
-
-Here are existing commands :
-- [`count-apis.js`](./count-apis.js): Count the number of APIs based on user search predicate.
-- [`create-endpoint.js`](./create-endpoint.js): Create an API endpoint.
-- [`enable-endpoints.js`](./enable-endpoints.js) : Enable (or disable) API endpoints based on user predicate.
-- [`enable-logs.js`](./enable-logs.js) : Enable (or disable) detailed logs on APIs that match user predicate.
-- [`extract-api-quality.js`](./extract-api-quality.js) : Extract API quality compliance as CSV content.
-- [`import-api.js`](./import-api.js) : Import existing API (update) depending a search. Import only if search returns exactly one result.
-- [`list-activated-logs-apis.js`](./list-activated-logs-apis.js) : List all APIs with activated detailed logs. 
-- [`list-apis.js`](./list-apis.js) : List all registered APIs by displaying their name and context path.
-- [`list-apis-quality.js`](./list-apis-quality.js) : List all registered APIs by displaying their name, context path and quality.
-- [`list-applications.js`](./list-applications.js) : List all registered Applications by displaying their name, context path and quality.
-- [`list-inactive-ldap-users.js`](./list-inactive-ldap-users.js): List inactive LDAP users.
-- [`list-labels.js`](./list-labels.js) : List labels defined on APIs.
-- [`list-non-subscribed-apis.js`](./list-non-subscribed-apis.js) : List all APIs with no active subscription by displaying their name, context path, owner name and owner email.
-- [`list-non-subscribed-applications.js`](./list-non-subscribed-applications.js) : List all applications with no active subscription by displaying their name, owner name and owner email.
-- [`transfer-ownership.js`](./transfer-ownership.js): Transfer ownership for APIs or applications.
-
 ## CLI command development example
 
 ```js
-const CliCommand = require('./cli-command');
-const { flatMap } = require('rxjs/operators');
-const util = require('util');
+const {CliCommand, CsvCliCommandReporter} = require('./lib/cli-command');
+const {flatMap, map} = require('rxjs/operators');
 
 const NO_DELAY_PERIOD = 0;
 
 /**
- * List all registered APIs by displaying their name, context path, owner name and owner email.
+ * List all registered APIs by displaying their ID, name, context path, owner name and owner email, in CSV format.
  *
  * @author Aurelien Bourdon
  */
@@ -75,6 +55,7 @@ class ListApis extends CliCommand {
     constructor() {
         super(
             'list-apis',
+            'List all registered APIs by displaying their ID, name, context path, owner name and owner email, in CSV format',
             {
                 'filter-by-name': {
                     describe: "Filter APIs against their name (insensitive regex)",
@@ -115,6 +96,7 @@ class ListApis extends CliCommand {
         managementApi
             .login(this.argv['username'], this.argv['password'])
             .pipe(
+                // List APIs according to filters
                 flatMap(_token => {
                     return this.hasBasicsFiltersOnly() ?
                         managementApi.listApisBasics({
@@ -132,16 +114,24 @@ class ListApis extends CliCommand {
                             byPolicyTechnicalName: this.argv['filter-by-policy-technical-name']
                         });
                 }),
-            )
-            .subscribe(this.defaultSubscriber(
-                api => this.displayRaw(util.format('[%s, %s, %s <%s>] %s',
+
+                // Format result so that it can be handle by CsvCliCommandReporter
+                map(api => [
                     api.id,
+                    api.name,
                     api.context_path,
                     api.owner.displayName,
-                    api.owner.email,
-                    api.name
-                ))
-            ));
+                    api.owner.email
+                ])
+            )
+            .subscribe(new CsvCliCommandReporter([
+                'API id',
+                'API name',
+                'API context path',
+                'API owner name',
+                'API owner email'
+            ], this));
+
     }
 
     hasBasicsFiltersOnly() {

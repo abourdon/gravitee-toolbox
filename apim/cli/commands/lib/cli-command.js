@@ -15,25 +15,27 @@ const CSV_SEPARATOR = ',';
 /**
  * Base type for any Management API Command Line Interface's command.
  *
- * Any inherited Script type will need to override the #definition(ManagementApi) method to specify the Script execution
+ * Any inherited CliCommand type will need to override the #definition(ManagementApi) method to specify the command execution
  *
  * @author Aurelien Bourdon
  */
 class CliCommand {
 
     /**
-     * Create a new ManagementApi script by specifying its name and specific options
+     * Create a new command that will be included in the CLI
      *
-     * @param {string} name the ManagementApi script name
-     * @param {object} specificOptions specific options of this ManagementApi script
+     * @param {string} name of this CLI command
+     * @param {string} description description of this CLI command
+     * @param {object} specificOptions specific options of this CLI command
      */
-    constructor(name = 'unnamed-script', specificOptions = {}) {
+    constructor(name, description, specificOptions = {}) {
         this.name = name;
+        this.description = description;
         this.specificOptions = specificOptions;
     }
 
     /**
-     * Returns default options for any Script
+     * Returns default options for any CliCommand
      */
     static defaultOptions() {
         return Object.assign({}, {
@@ -201,7 +203,7 @@ class CliCommand {
     _initArgv() {
         // Initialize yargs
         this.argv = yargs
-            .usage('Usage: $0 [options]')
+            .usage('$0 [options]', this.description)
             .help('h')
             .alias('h', 'help')
             .version(false)

@@ -4,7 +4,7 @@ const {filter, flatMap, map} = require('rxjs/operators');
 const NO_DELAY_PERIOD = 0;
 
 /**
- * List all applications with no active subscription by displaying their name, owner name and owner email.
+ * List all applications with no active subscription by displaying their ID name, owner name and owner email, in CSV format.
  *
  * @author Alexandre Carbenay
  */
@@ -12,7 +12,8 @@ class ListNonSubscribedApplications extends CliCommand {
 
     constructor() {
         super(
-            'list-non-subscribed-applications'
+            'list-non-subscribed-applications',
+            'List all applications with no active subscription by displaying their ID name, owner name and owner email, in CSV format'
         );
     }
 

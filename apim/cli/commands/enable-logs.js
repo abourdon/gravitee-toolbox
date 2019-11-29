@@ -26,6 +26,7 @@ class EnableLogs extends CliCommand {
     constructor() {
         super(
             'enable-logs',
+            'Enable/Disable detailed API logs',
             {
                 'filter-by-name': {
                     describe: "Filter APIs against their name (insensitive regex)"

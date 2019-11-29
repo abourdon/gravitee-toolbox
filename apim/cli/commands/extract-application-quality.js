@@ -30,6 +30,7 @@ class ExtractApplicationQuality extends CliCommand {
     constructor() {
         super(
             'extract-application-quality',
+            'Extract quality criteria compliance corresponding to an Application as a CSV content',
             {
                 'filter-by-id': {
                     describe: 'Filter by Application UUID',
