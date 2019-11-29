@@ -15,6 +15,7 @@ class ApiDetails extends CliCommand {
     constructor() {
         super(
             'get-api-details',
+            'Display API details',
             {
                 'api-id': {
                     describe: 'API UUID',

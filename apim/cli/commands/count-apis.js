@@ -5,7 +5,7 @@ const util = require('util');
 const NO_DELAY_PERIOD = 0;
 
 /**
- * List all registered APIs by displaying their name and context path.
+ * Count number of available APIs for the given user
  * 
  * @author Aurelien Bourdon
  */
@@ -14,6 +14,7 @@ class CountApis extends CliCommand {
     constructor() {
         super(
             'count-apis',
+            'Count number of available APIs for the given user',
             {
                 'filter-by-name': {
                     describe: "Filter APIs against their name (insensitive regex)",

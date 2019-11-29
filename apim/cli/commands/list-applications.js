@@ -4,7 +4,7 @@ const {flatMap, map} = require('rxjs/operators');
 const NO_DELAY_PERIOD = 0;
 
 /**
- * List all registered Applications by displaying their name, owner name and owner email.
+ * List all registered Applications by displaying their ID, name, owner name and owner email, in CSV format.
  *
  * @author Aurelien Bourdon
  */
@@ -12,7 +12,8 @@ class ListApplications extends CliCommand {
 
     constructor() {
         super(
-            'list-applications'
+            'list-applications',
+            'List all registered Applications by displaying their ID, name, owner name and owner email, in CSV format'
         );
     }
 

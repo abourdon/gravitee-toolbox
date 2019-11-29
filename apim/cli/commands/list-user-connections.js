@@ -3,7 +3,7 @@ const ManagementApi = require('./lib/management-api');
 const {flatMap, groupBy, map} = require('rxjs/operators');
 
 /**
- * List user connections during a given timeslot. Result is in CSV format.
+ * List user connections during a given timeslot, in CSV format.
  *
  * @author Aurelien Bourdon
  */
@@ -12,6 +12,7 @@ class ListUserConnections extends CliCommand {
     constructor() {
         super(
             'list-user-connections',
+            'List user connections during a given timeslot, in CSV format',
             {
                 'from': {
                     describe: 'Start date from which start the search, in YYYY-MM-DDTHH:mm:ss.sssZ format',

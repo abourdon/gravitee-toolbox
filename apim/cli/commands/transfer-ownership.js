@@ -14,7 +14,9 @@ class TransferOwnership extends CliCommand {
 
     constructor() {
         super(
-            'transfer-ownership', {
+            'transfer-ownership',
+            'Transfer APIs and applications ownership based on user predicate',
+            {
                 'type': {
                     describe: 'Indicates which type of element is managed (either api or application)',
                     choices: ['api', 'application'],

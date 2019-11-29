@@ -7,7 +7,7 @@ const DEFAULT_DELAY_PERIOD = 50;
 const SUBSCRIPTION_PAGE_SIZE = 100;
 
 /**
- * List all subscriptions corresponding to the provided filters.
+ * List all subscriptions corresponding to the provided filters, in CSV format.
  *
  * @author Alexandre Carbenay
  */
@@ -16,6 +16,7 @@ class ListSubscriptions extends CliCommand {
     constructor() {
         super(
             'list-subscriptions',
+            'List all subscriptions corresponding to the provided filters, in CSV format',
             {
                 'api-id': {
                     describe: 'API UUID',

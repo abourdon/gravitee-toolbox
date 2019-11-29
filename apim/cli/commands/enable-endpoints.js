@@ -14,7 +14,9 @@ class EnableEndpoints extends CliCommand {
 
     constructor() {
         super(
-            'enable-endpoints', {
+            'enable-endpoints',
+            'Enable/Disable API endpoint(s)',
+            {
                 'filter-by-name': {
                     describe: "Filter APIs against their name (insensitive regex)"
                 },

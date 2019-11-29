@@ -13,6 +13,7 @@ class ListApisQuality extends CliCommand {
     constructor() {
         super(
             'list-apis-quality',
+            'List all registered APIs quality by displaying their score and successful metrics',
             {
                 'filter-by-name': {
                     describe: "Filter APIs against their name (insensitive regex)"

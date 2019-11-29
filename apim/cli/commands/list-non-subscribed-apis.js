@@ -4,7 +4,7 @@ const {filter, flatMap, map} = require('rxjs/operators');
 const NO_DELAY_PERIOD = 0;
 
 /**
- * List all APIs with no active subscription by displaying their name, context path, owner name and owner email.
+ * List all APIs with no active subscription by displaying their ID, name, context path, owner name and owner email, in CSV format.
  *
  * @author Alexandre Carbenay
  */
@@ -13,6 +13,7 @@ class ListNonSubscribedApis extends CliCommand {
     constructor() {
         super(
             'list-non-subscribed-apis',
+            'List all APIs with no active subscription by displaying their ID, name, context path, owner name and owner email, in CSV format',
             {
                 'filter-by-name': {
                     describe: "Filter APIs against their name (insensitive regex)",

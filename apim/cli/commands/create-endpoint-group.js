@@ -48,7 +48,9 @@ class CreateEndpointGroup extends CliCommand {
 
     constructor() {
         super(
-            'create-endpoint-group', {
+            'create-endpoint-group',
+            'Create and API endpoint group',
+            {
                 'filter-by-name': {
                     describe: "Filter APIs against their name (insensitive regex)"
                 },

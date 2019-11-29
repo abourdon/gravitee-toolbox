@@ -15,6 +15,7 @@ class ListInactiveLdapUsers extends CliCommand {
     constructor() {
         super(
             'list-inactive-ldap-users',
+            'List inactive LDAP users',
             {
                 'ldap-url': {
                     describe: 'LDAP base URL',

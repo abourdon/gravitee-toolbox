@@ -4,7 +4,7 @@ const {flatMap, map} = require('rxjs/operators');
 const NO_DELAY_PERIOD = 0;
 
 /**
- * List all registered APIs by displaying their name, context path, owner name and owner email.
+ * List all registered APIs by displaying their ID, name, context path, owner name and owner email, in CSV format.
  *
  * @author Aurelien Bourdon
  */
@@ -13,6 +13,7 @@ class ListApis extends CliCommand {
     constructor() {
         super(
             'list-apis',
+            'List all registered APIs by displaying their ID, name, context path, owner name and owner email, in CSV format',
             {
                 'filter-by-name': {
                     describe: "Filter APIs against their name (insensitive regex)",

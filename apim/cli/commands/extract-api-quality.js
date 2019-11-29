@@ -172,6 +172,7 @@ class ExtractApiQuality extends CliCommand {
     constructor() {
         super(
             'extract-api-quality',
+            'Extract quality criteria compliance corresponding to an API as a CSV content',
             {
                 'api-id': {
                     describe: "API UUID. If not provided, extract API quality for all APIs",

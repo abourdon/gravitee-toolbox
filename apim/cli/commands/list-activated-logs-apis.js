@@ -10,7 +10,7 @@ const TIMESTAMP_CONDITION_PREFIX = '#request.timestamp <= ';
 const now = (new Date).getTime();
 
 /**
- * List all APIs with detailed logs activated.
+ * List all APIs with detailed logs activated, in CSV format.
  *
  * @author Alexandre Carbenay
  */
@@ -19,6 +19,7 @@ class ListActivatedLogsApis extends CliCommand {
     constructor() {
         super(
             'list-activated-logs-apis',
+            'List all APIs with detailed logs activated, in CSV format',
             {
                 'filter-by-name': {
                     describe: "Filter APIs against their name (insensitive regex)"
