@@ -10,6 +10,8 @@ const LOG_LEVEL = {
     warn: 'WARNING'
 };
 
+const CSV_SEPARATOR = ',';
+
 /**
  * Base type for any Management API Command Line Interface's command.
  *
@@ -275,7 +277,53 @@ class CliCommandReporter {
 
 }
 
+/**
+ * Dedicated CliCommandReporter that produce live display in CSV format.
+ *
+ * @author Aurelien Bourdon
+ */
+class CsvCliCommandReporter extends CliCommandReporter {
+
+    /**
+     * New CsvCliCommandReporter with its given header
+     *
+     * @param header array of CSV header names, in order.
+     * @param cliCommand the associated CliCommand to this CliCommandReporter
+     */
+    constructor(header, cliCommand) {
+        super(cliCommand);
+        this.header = header;
+        this.firstEvent = true;
+    }
+
+    /**
+     * Line to add to the CSV, in an array format with the same column order as this.header
+     *
+     * @param line
+     */
+    doNext(line) {
+        if (this.firstEvent) {
+            this.cliCommand.displayInfo('Results (in CSV format):');
+            this._displayLine(this.header);
+            this.firstEvent = false;
+        }
+        this._displayLine(line);
+    }
+
+    /**
+     * Display a line contained into an array, in order.
+     *
+     * @param line the array line to display
+     * @private
+     */
+    _displayLine(line) {
+        this.cliCommand.displayRaw(line.join(CSV_SEPARATOR));
+    }
+
+}
+
 module.exports = {
     CliCommand: CliCommand,
-    CliCommandReporter: CliCommandReporter
+    CliCommandReporter: CliCommandReporter,
+    CsvCliCommandReporter: CsvCliCommandReporter
 };

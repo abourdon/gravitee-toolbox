@@ -1,7 +1,6 @@
-const {CliCommand, CliCommandReporter} = require('./lib/cli-command');
+const {CliCommand, CsvCliCommandReporter} = require('./lib/cli-command');
 const ManagementApi = require('./lib/management-api');
-const {flatMap, groupBy, count} = require('rxjs/operators');
-const util = require('util');
+const {flatMap, groupBy, map} = require('rxjs/operators');
 
 /**
  * List user connections during a given timeslot. Result is in CSV format.
@@ -48,6 +47,7 @@ class ListUserConnections extends CliCommand {
         managementApi
             .login(this.argv['username'], this.argv['password'])
             .pipe(
+                // List audits
                 flatMap(_token => {
                     return managementApi.listAudits(
                         ManagementApi.EVENT_TYPE.USER_CONNECTED,
@@ -58,45 +58,17 @@ class ListUserConnections extends CliCommand {
                         this.argv['request-page-delay']
                     )
                 }),
+
+                // Distinct by users
                 groupBy(event => event.properties.USER),
-                flatMap(userEvent => managementApi.getUser(userEvent.key))
+
+                // Retrieve details for each user
+                flatMap(userEvent => managementApi.getUser(userEvent.key)),
+
+                // Finally order user information to be taken into account by the CsvCliCommandReporter
+                map(user => [user.id, user.displayName, user.email ? user.email : 'N/A', user.source])
             )
-            .subscribe(new ListUserConnectionsCSVReporter(this));
-    }
-
-}
-
-/**
- * Report results in CSV format
- */
-class ListUserConnectionsCSVReporter extends CliCommandReporter {
-
-    static formatEmail(email) {
-        return email ? email : 'N/A';
-    }
-
-    constructor(cliCommand) {
-        super(cliCommand);
-        this.users = [];
-    }
-
-    doNext(user) {
-        this.cliCommand.displayInfo(util.format('User %s (%s) found', user.displayName, ListUserConnectionsCSVReporter.formatEmail(user.email)));
-        this.users.push(user);
-    }
-
-    doComplete() {
-        this.cliCommand.displayInfo('List of user connections (in CSV format):');
-        // CSV header
-        this.cliCommand.displayRaw('Id, Display name, Email, Source');
-        // CSV line users
-        this.users.forEach(user => this.cliCommand.displayRaw(util.format(
-            '%s, %s, %s, %s',
-            user.id,
-            user.displayName,
-            ListUserConnectionsCSVReporter.formatEmail(user.email),
-            user.source
-        )));
+            .subscribe(new CsvCliCommandReporter(['Id', 'Display name', 'Email', 'Source'], this));
     }
 
 }

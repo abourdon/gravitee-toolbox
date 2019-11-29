@@ -1,8 +1,7 @@
-const {CliCommand} = require('./lib/cli-command');
+const {CliCommand, CsvCliCommandReporter} = require('./lib/cli-command');
 const StringUtils = require('./lib/string-utils');
-const util = require('util');
 const Rx = require('rxjs');
-const { filter, flatMap, map } = require('rxjs/operators');
+const {filter, flatMap, map} = require('rxjs/operators');
 
 const DEFAULT_DELAY_PERIOD = 50;
 const SUBSCRIPTION_PAGE_SIZE = 100;
@@ -59,21 +58,38 @@ class ListSubscriptions extends CliCommand {
     definition(managementApi) {
         this.getApis(managementApi)
             .pipe(
+                // Get API subscriptions
                 flatMap(api => this.getApiSubscriptions(managementApi, api)),
-                flatMap(subscription => this.enrichSubscriptionWithKey(managementApi, subscription))
-            ).subscribe(this.defaultSubscriber(
-                subscription => this.displayRaw(util.format(
-                    'api: %s (%s - %s), application: %s (%s), plan: %s, subscription: %s, security: %s, key: %s',
+
+                // Enrich them with subscription token
+                flatMap(subscription => this.enrichSubscriptionWithKey(managementApi, subscription)),
+
+                // Finally format result to be taken into the CsvCliCommandReporter
+                map(subscription => [
                     subscription.api.name,
                     subscription.api.id,
                     subscription.api.context_path,
                     subscription.application.name,
                     subscription.application.id,
                     subscription.plan.name,
-                    subscription.subscription.status,
                     subscription.plan.security,
+                    subscription.subscription.status,
                     subscription.key ? subscription.key : 'none'
-                ))
+                ])
+            )
+            .subscribe(new CsvCliCommandReporter(
+                [
+                    'API name',
+                    'API id',
+                    'API context path',
+                    'Application name',
+                    'Application id',
+                    'Plan name',
+                    'Plan security type',
+                    'Subscription status',
+                    'Subscription token'
+                ],
+                this
             ));
     }
 
@@ -82,12 +98,12 @@ class ListSubscriptions extends CliCommand {
             flatMap(_token => this.argv['api-id'] !== undefined
                 ? managementApi.getApi(this.argv['api-id'])
                 : managementApi.listApisBasics({
-                      byName: this.argv['filter-by-name'],
-                      byContextPath: this.argv['filter-by-context-path'],
-                      byPrimaryOwner: this.argv['filter-by-primary-owner']
-                  }, DEFAULT_DELAY_PERIOD).pipe(
-                      filter(api => api.manageable)
-                  )
+                    byName: this.argv['filter-by-name'],
+                    byContextPath: this.argv['filter-by-context-path'],
+                    byPrimaryOwner: this.argv['filter-by-primary-owner']
+                }, DEFAULT_DELAY_PERIOD).pipe(
+                    filter(api => api.manageable)
+                )
             )
         );
     }
@@ -109,11 +125,11 @@ class ListSubscriptions extends CliCommand {
                 subscription: subscription
             })),
             filter(subscription => this.argv['application-id'] === undefined
-                    || subscription.application.id === this.argv['application-id']),
+                || subscription.application.id === this.argv['application-id']),
             filter(subscription => this.argv['filter-by-application-name'] === undefined
-                    || StringUtils.caseInsensitiveMatches(subscription.application.name, this.argv['filter-by-application-name'])),
+                || StringUtils.caseInsensitiveMatches(subscription.application.name, this.argv['filter-by-application-name'])),
             filter(subscription => this.argv['filter-by-plan-name'] === undefined
-                    || StringUtils.caseInsensitiveMatches(subscription.plan.name, this.argv['filter-by-plan-name']))
+                || StringUtils.caseInsensitiveMatches(subscription.plan.name, this.argv['filter-by-plan-name']))
         );
     }
 

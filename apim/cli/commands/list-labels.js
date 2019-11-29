@@ -1,6 +1,6 @@
-const {CliCommand} = require('./lib/cli-command');
-const { filter, flatMap, groupBy, map, toArray } = require('rxjs/operators');
-const util = require('util');
+const {CliCommand, CsvCliCommandReporter} = require('./lib/cli-command');
+const {filter, flatMap, groupBy, map, toArray} = require('rxjs/operators');
+const Rx = require('rxjs');
 
 /**
  * List labels defined on APIs.
@@ -20,20 +20,30 @@ class ListLabels extends CliCommand {
             .login(this.argv['username'], this.argv['password'])
             .pipe(
                 flatMap(_token => managementApi.listApisBasics()),
-                map(api => Object.assign({id: api.id, name: api.name, version: api.version, labels: api.labels})),
-                filter(api => api.labels !== undefined),
-                flatMap(api => api.labels.map(label => Object.assign({label: label, api: Object.assign({ id: api.id, name: api.name, version: api.version})}))),
-                groupBy(labelApi => labelApi.label, labelApi => labelApi.api),
-                flatMap(group => group.pipe(toArray(), map(apis => Object.assign({ label: group.key, apis: apis }))))
+                flatMap(api => {
+                    if (api.labels) {
+                        return Rx.from(api.labels.map(label => [
+                            label,
+                            api.id,
+                            api.name,
+                            api.context_path,
+                            api.version
+                        ]));
+                    }
+                    return Rx.EMPTY;
+                })
             )
-            .subscribe(this.defaultSubscriber(
-                labelApis => {
-                    this.displayRaw(util.format('%s', labelApis.label));
-                    labelApis.apis.sort(function(a,b){
-                        return a.name.localeCompare(b.name);
-                    }).forEach(api => this.displayRaw(util.format('    %s (%s) - %s', api.name, api.version, api.id)));
-                }
+            .subscribe(new CsvCliCommandReporter(
+                [
+                    'Label',
+                    'API id',
+                    'API name',
+                    'API context path',
+                    'API version'
+                ],
+                this
             ));
     }
 }
+
 new ListLabels().run();

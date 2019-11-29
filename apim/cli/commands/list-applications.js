@@ -1,12 +1,11 @@
-const {CliCommand} = require('./lib/cli-command');
-const { flatMap } = require('rxjs/operators');
-const util = require('util');
+const {CliCommand, CsvCliCommandReporter} = require('./lib/cli-command');
+const {flatMap, map} = require('rxjs/operators');
 
 const NO_DELAY_PERIOD = 0;
 
 /**
  * List all registered Applications by displaying their name, owner name and owner email.
- * 
+ *
  * @author Aurelien Bourdon
  */
 class ListApplications extends CliCommand {
@@ -21,16 +20,24 @@ class ListApplications extends CliCommand {
         managementApi
             .login(this.argv['username'], this.argv['password'])
             .pipe(
-                flatMap(() => managementApi.listApplications(NO_DELAY_PERIOD))
-            )
-            .subscribe(this.defaultSubscriber(
-                app => this.displayRaw(util.format('[%s, %s <%s>] %s',
+                // List applications
+                flatMap(() => managementApi.listApplications(NO_DELAY_PERIOD)),
+
+                // Format event so that it can be handle by CsvCliCommandReporter
+                map(app => [
                     app.id,
+                    app.name,
                     app.owner.displayName,
-                    app.owner.email,
-                    app.name
-                ))
-            ));
+                    app.owner.email
+                ])
+            )
+            .subscribe(new CsvCliCommandReporter([
+                'Application ID',
+                'Application name',
+                'Application owner name',
+                'Application owner email'
+            ], this));
     }
 }
+
 new ListApplications().run();
