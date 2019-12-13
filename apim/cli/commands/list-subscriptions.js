@@ -46,6 +46,10 @@ class ListSubscriptions extends CliCommand {
                     describe: 'Filter subscriptions against its plan name (insensitive regex)',
                     type: 'string'
                 },
+                'filter-by-subscription-token': {
+                    describe: 'Filter subscriptions against its token if token is available (insensitive regex)',
+                    type: 'string'
+                },
                 'filter-by-subscription-status': {
                     describe: 'Subscription status to filter on',
                     type: 'string',
@@ -64,6 +68,12 @@ class ListSubscriptions extends CliCommand {
 
                 // Enrich them with subscription token
                 flatMap(subscription => this.enrichSubscriptionWithKey(managementApi, subscription)),
+
+                // Filter by subscription token if necessary
+                filter(subscription => !this.argv['filter-by-subscription-token'] || (
+                    subscription.key &&
+                    StringUtils.caseInsensitiveMatches(subscription.key, this.argv['filter-by-subscription-token'])
+                )),
 
                 // Finally format result to be taken into the CsvCliCommandReporter
                 map(subscription => [
