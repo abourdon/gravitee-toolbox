@@ -6,3 +6,7 @@ Hereafter the list of available toolboxes, by Gravitee.io API Platform's compone
 | Component             | Description                                                                                                |
 | --------------------- | ---------------------------------------------------------------------------------------------------------- |
 | [apim](./apim)        | Access to the [Gravitee.io API Management](https://gravitee.io/products/apim/) (APIM) dedicated toolbox    |
+
+## How to contribute
+
+Contributions are warmly welcomed! Just follow the [instructions](./CONTRIBUTING.md).
