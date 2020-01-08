@@ -12,6 +12,10 @@ const EXPORT_EXCLUDE = {
     PAGES: 'pages',
     PLANS: 'plans'
 };
+const API_PORTAL_VISBILITY = {
+    PRIVATE: 'private',
+    PUBLIC: 'public'
+};
 const EVENT_TYPE = {
     USER_CONNECTED: 'USER_CONNECTED'
 };
@@ -127,6 +131,9 @@ class ManagementApi {
                     || StringUtils.caseInsensitiveMatches(api.owner.displayName, filters.byPrimaryOwner)
                     || (typeof api.owner.email !== 'undefined' && StringUtils.caseInsensitiveMatches(api.owner.email, filters.byPrimaryOwner))
                 ),
+
+                // Apply filter on portal visibility if necessary
+                filter(api => filters.byPortalVisibility.includes(api.visibility)),
 
                 // Apply delay between API emission
                 concatMap(api => Rx
@@ -917,6 +924,7 @@ class PagedResult {
 module.exports = {
     Settings: ManagementApi.Settings,
     EXPORT_EXCLUDE: EXPORT_EXCLUDE,
+    API_PORTAL_VISBILITY: API_PORTAL_VISBILITY,
     EVENT_TYPE: EVENT_TYPE,
     PLAN_STATUS: PLAN_STATUS,
     PLAN_SECURITY_TYPE: PLAN_SECURITY_TYPE,

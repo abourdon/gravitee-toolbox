@@ -1,4 +1,5 @@
 const {CliCommand, CsvCliCommandReporter} = require('./lib/cli-command');
+const {API_PORTAL_VISBILITY} = require('./lib/management-api');
 const {flatMap, map} = require('rxjs/operators');
 
 const NO_DELAY_PERIOD = 0;
@@ -26,6 +27,12 @@ class ListApis extends CliCommand {
                 'filter-by-primary-owner': {
                     describe: "Filter APIs against its primary owner name or address (insensitive regex)",
                     type: 'string'
+                },
+                'filter-by-portal-visibility': {
+                    describe: 'Filter APIs against their visibility into the Portal',
+                    type: 'array',
+                    choices: Object.values(API_PORTAL_VISBILITY),
+                    default: Object.values(API_PORTAL_VISBILITY)
                 },
                 'filter-by-endpoint-group-name': {
                     describe: "Filter APIs against endpoint group name (insensitive regex)",
@@ -60,11 +67,14 @@ class ListApis extends CliCommand {
                         managementApi.listApisBasics({
                             byName: this.argv['filter-by-name'],
                             byContextPath: this.argv['filter-by-context-path'],
-                            byPrimaryOwner: this.argv['filter-by-primary-owner']
+                            byPrimaryOwner: this.argv['filter-by-primary-owner'],
+                            byPortalVisibility: this.argv['filter-by-portal-visibility']
                         }, NO_DELAY_PERIOD) :
                         managementApi.listApisDetails({
                             byName: this.argv['filter-by-name'],
                             byContextPath: this.argv['filter-by-context-path'],
+                            byPrimaryOwner: this.argv['filter-by-primary-owner'],
+                            byPortalVisibility: this.argv['filter-by-portal-visibility'],
                             byEndpointGroupName: this.argv['filter-by-endpoint-group-name'],
                             byEndpointName: this.argv['filter-by-endpoint-name'],
                             byEndpointTarget: this.argv['filter-by-endpoint-target'],
