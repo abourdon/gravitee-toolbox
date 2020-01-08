@@ -40,7 +40,7 @@ class StringUtils {
      * @returns {boolean} true if regex matches on text, false otherwise
      */
     static matches(text, regex, flags) {
-        return this.search(text, regex, INSENSITIVE_REGEX_FLAG) !== NO_RESULT_ON_STRING_SEARCH;
+        return this.search(text, regex, flags) !== NO_RESULT_ON_STRING_SEARCH;
     }
 
     /**
