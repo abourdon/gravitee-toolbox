@@ -1,4 +1,5 @@
 const {CliCommand} = require('./lib/cli-command');
+const {PLAN_STATUS, SUBSCRIPTION_STATUS} = require('./lib/management-api');
 const { flatMap, map, reduce, tap } = require('rxjs/operators');
 const Rx = require('rxjs');
 const util = require('util');
@@ -19,19 +20,20 @@ class ApiDetails extends CliCommand {
             {
                 'api-id': {
                     describe: 'API UUID',
-                    type: 'string'
+                    type: 'string',
+                    demandOption: true
                 },
                 'filter-plan-status': {
                     describe: 'Status to filter on API plans',
-                    type: 'string',
-                    choices: ['staging', 'published', 'deprecated', 'closed'],
-                    default: ['staging', 'published', 'deprecated', 'closed']
+                    type: 'array',
+                    choices: Object.values(PLAN_STATUS),
+                    default: Object.values(PLAN_STATUS)
                 },
                 'filter-subscription-status': {
                     describe: 'Status to filter on API subscriptions',
-                    type: 'string',
-                    choices: ['ACCEPTED', 'PENDING', 'PAUSED', 'REJECTED', 'CLOSED'],
-                    default: ['ACCEPTED', 'PENDING', 'PAUSED']
+                    type: 'array',
+                    choices: Object.values(SUBSCRIPTION_STATUS),
+                    default: [SUBSCRIPTION_STATUS.ACCEPTED, SUBSCRIPTION_STATUS.PENDING, SUBSCRIPTION_STATUS.PAUSED]
                 }
             }
         );
@@ -61,16 +63,14 @@ class ApiDetails extends CliCommand {
 
     enrichApiPlans(managementApi, apiId, details) {
         return managementApi.getApiPlans(apiId, this.argv['filter-plan-status']).pipe(
-            flatMap(plans => Rx.from(plans).pipe(
-                map(plan => util.format('\t%s (%s), %s, %s, %s',
-                    plan.name,
-                    plan.description,
-                    plan.status,
-                    plan.security,
-                    plan.validation
-                )),
-                reduce((acc, plan) => acc + "\n" + plan, "")
+            map(plan => util.format('\t%s (%s), %s, %s, %s',
+                plan.name,
+                plan.description,
+                plan.status,
+                plan.security,
+                plan.validation
             )),
+            reduce((acc, plan) => acc + "\n" + plan, ""),
             tap(plans => details.plans = plans),
             map(plans => details)
         );

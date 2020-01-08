@@ -170,9 +170,7 @@ class CliCommand {
      * @param next the next operation that will modify the list of objects
      * @param end the end operation that will need to apply in case of user cancellation
      */
-    askForApproval(objectsToApprove = [], next = () => {
-    }, end = () => {
-    }) {
+    askForApproval(objectsToApprove = [], next = () => {}, end = () => {}, messageHeader = "The following objects will be concerned by the operation") {
         // If no object need to be approved, continue
         if (!objectsToApprove || objectsToApprove.length === 0) {
             return next();
@@ -181,7 +179,7 @@ class CliCommand {
         // If not, ask for approval
         let question = objectsToApprove.reduce((acc, object) =>
             acc + util.format("- %s\n", object),
-            "The following objects will be concerned by the operation:\n"
+            util.format("%s:\n", messageHeader)
         );
         question += util.format('Continue? (y/n) ');
         const ask = readline.createInterface({
@@ -222,9 +220,24 @@ class CliCommand {
      */
     run() {
         this._initArgv();
-        const managementApi = ManagementApi.createInstance(new ManagementApi.Settings(this.argv['management-api-url'], this.argv['management-api-url-header']));
+        this.managementApi = ManagementApi.createInstance(new ManagementApi.Settings(this.argv['management-api-url'], this.argv['management-api-url-header']));
         this.displayInfo("Starting...");
-        this.definition(managementApi);
+        const prerequisites = this.checkPrerequisites();
+        if (!prerequisites.satisfied) {
+            this.displayError("Prerequisites aren't satisfied: " + prerequisites.description);
+            this.exitWithError();
+        }
+        // TODO remove managementApi argument as it is now directly owned by the CliCommand instance itself
+        this.definition(this.managementApi);
+    }
+
+    /**
+     * Check prerequisites before applying #definition()
+     *
+     * @returns {CliCommandPrerequisites} a CliCommandPrerequisites that describes the prerequisites status of the associated CliCommand
+     */
+    checkPrerequisites() {
+        return CliCommandPrerequisites.createSatisfied();
     }
 
     /**
@@ -232,6 +245,7 @@ class CliCommand {
      *
      * @param {object} _managementApi the MagementApi instance associated to this CLI command
      */
+    // TODO remove managementApi argument as it is now directly owned by the CliCommand instance itself
     definition(_managementApi) {
         throw new Error('No definition found for this script. CliCommand#definition() needs to be overridden');
     }
@@ -275,6 +289,45 @@ class CliCommandReporter {
 
     doComplete() {
         // Nothing by default
+    }
+
+}
+
+/**
+ * Prerequisites before applying a CliCommand
+ *
+ * @author Aurelien Bourdon
+ */
+class CliCommandPrerequisites {
+
+    /**
+     * Create a new CliCommandPrerequisites with the predefined validity status and optional description
+     *
+     * @param {boolean} satisfied if prerequisites of the related CliCommand are satisfied or not
+     * @param {string} description additional description of the prerequisites status (especially in case of failure)
+     */
+    constructor(satisfied, description) {
+        this.satisfied = satisfied;
+        this.description = description;
+    }
+
+    /**
+     * Create a satisfied CliCommandPrerequisites
+     *
+     * @returns {CliCommandPrerequisites} a satisfied CliCommandPrerequisites
+     */
+    static createSatisfied() {
+        return new CliCommandPrerequisites(true);
+    }
+
+    /**
+     * Create a not satisfied CliCommandPrerequisites
+     *
+     * @param description why prerequisites of the related CliCommand cannot be satisfied
+     * @returns {CliCommandPrerequisites} a not satisfied CliCommandPrerequisites
+     */
+    static createNotSatisfied(description) {
+        return new CliCommandPrerequisites(false, description);
     }
 
 }
@@ -326,6 +379,7 @@ class CsvCliCommandReporter extends CliCommandReporter {
 
 module.exports = {
     CliCommand: CliCommand,
+    CliCommandPrerequisites: CliCommandPrerequisites,
     CliCommandReporter: CliCommandReporter,
     CsvCliCommandReporter: CsvCliCommandReporter
 };

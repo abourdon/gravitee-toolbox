@@ -120,19 +120,20 @@ class ListSubscriptions extends CliCommand {
     }
 
     getApiSubscriptions(managementApi, api) {
-        return managementApi.getApiPlans(api.id).pipe(
-            flatMap(plans => managementApi.getApiSubscriptions(api.id, this.argv['subscription-status'], SUBSCRIPTION_PAGE_SIZE).pipe(
-                flatMap(subscriptions => this.extractApiSubscriptions(api, plans, subscriptions))
-            ))
+        return managementApi.getApiSubscriptions(api.id, this.argv['filter-by-subscription-status'], SUBSCRIPTION_PAGE_SIZE).pipe(
+            flatMap(subscriptions => managementApi.getApiPlans(api.id).pipe(
+                    flatMap(plan => this.extractApiSubscriptions(api, plan, subscriptions))
+                )
+            )
         );
     }
 
-    extractApiSubscriptions(api, plans, subscriptions) {
+    extractApiSubscriptions(api, plan, subscriptions) {
         return Rx.from(subscriptions.data).pipe(
             map(subscription => Object.assign({
                 api: api,
                 application: this.getSubscriptionApplication(subscription.application, subscriptions.metadata),
-                plan: plans.filter(plan => plan.id === subscription.plan)[0],
+                plan: plan,
                 subscription: subscription
             })),
             filter(subscription => this.argv['application-id'] === undefined

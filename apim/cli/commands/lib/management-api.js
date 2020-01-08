@@ -15,6 +15,25 @@ const EXPORT_EXCLUDE = {
 const EVENT_TYPE = {
     USER_CONNECTED: 'USER_CONNECTED'
 };
+const PLAN_STATUS = {
+    STAGING: 'staging',
+    PUBLISHED: 'published',
+    DEPRECATED: 'deprecated',
+    CLOSED: 'closed'
+};
+const PLAN_SECURITY_TYPE = {
+    API_KEY: 'api_key',
+    KEYLESS: 'key_less',
+    JWT: 'jwt',
+    OAUTH2: 'oauth2'
+};
+const SUBSCRIPTION_STATUS = {
+    ACCEPTED: 'accepted',
+    PENDING: 'pending',
+    PAUSED: 'paused',
+    REJECTED: 'rejected',
+    CLOSED: 'closed'
+};
 
 /**
  * Gravitee.io APIM's Management API client instance.
@@ -93,6 +112,9 @@ class ManagementApi {
             .pipe(
                 // Emit each API found
                 flatMap(apis => Rx.from(apis)),
+
+                // Apply filter on id if necessary (strict matches),
+                filter(api => !filters.byId || StringUtils.matches(api.id, filters.byId)),
 
                 // Apply filter on name if necessary
                 filter(api => !filters.byName || StringUtils.caseInsensitiveMatches(api.name, filters.byName)),
@@ -249,7 +271,10 @@ class ManagementApi {
                 // Emit each application found
                 flatMap(apps => Rx.from(apps)),
 
-                // Apply filter on name if necessary
+                // Filter on application id if necessary
+                filter(app => !filters.byId || StringUtils.matches(app.id, filters.byId)),
+
+                // Filter on application name if necessary
                 filter(app => !filters.byName || StringUtils.caseInsensitiveMatches(app.name, filters.byName)),
 
                 // Apply delay between API emission
@@ -337,20 +362,30 @@ class ManagementApi {
      * Get API plans.
      *
      * @param apiId the API identifier from which getting plans.
-     * @param planStatus status of the plans to retrieve.
-     * @returns {Observable<any>}
+     * @param {array} planStatusToInclude status of plans to retrieve.
+     * @param {array} securityTypeToExclude security types of plans to exclude.
+     * @param additionalFilters additional filters to apply when getting API plans (by name...)
+     * @returns {Observable<B>} emit each plan
      */
-    getApiPlans(apiId, planStatus = ['staging', 'published', 'deprecated', 'closed']) {
-        if (typeof planStatus === 'string') {
-            var status = planStatus;
-        } else {
-            var status = planStatus.reduce((acc, s) => acc + (acc.length > 0 ? "," : "") + s, "");
-        }
+    getApiPlans(apiId, planStatusToInclude = Object.values(PLAN_STATUS), securityTypesToExclude = [], additionalFilters = {}) {
         const requestSettings = {
             method: 'get',
-            url: util.format('/apis/%s/plans?status=%s', apiId, status)
+            url: util.format('/apis/%s/plans', apiId),
+            qs: {
+                status: planStatusToInclude.join(',')
+            }
         };
-        return this._request(requestSettings);
+        return this._request(requestSettings)
+            .pipe(
+                // Emit any plan
+                flatMap(plans => plans),
+
+                // Exclude non desired security types
+                filter(plan => !securityTypesToExclude.includes(plan.security)),
+
+                // Filter plan by its name
+                filter(plan => !additionalFilters.byName || StringUtils.caseInsensitiveMatches(plan.name, additionalFilters.byName))
+            );
     }
 
     /**
@@ -359,17 +394,12 @@ class ManagementApi {
      * @param apiId the API identifier from which getting subscriptions.
      * @param subscriptionStatus status of the subscriptions to retrieve.
      * @param size number of subscriptions to retrieve.
-     * @returns {Observable<any>}
+     * @returns {Observable<B>} emit each subscription
      */
-    getApiSubscriptions(apiId, subscriptionStatus = ['ACCEPTED', 'PENDING', 'PAUSED'], size = 10) {
-        if (typeof subscriptionStatus === 'string') {
-            var status = subscriptionStatus;
-        } else {
-            var status = subscriptionStatus.reduce((acc, s) => acc + (acc.length > 0 ? "," : "") + s, "");
-        }
+    getApiSubscriptions(apiId, subscriptionStatus = [SUBSCRIPTION_STATUS.ACCEPTED, SUBSCRIPTION_STATUS.PENDING, SUBSCRIPTION_STATUS.PAUSED], size = 100) {
         const requestSettings = {
             method: 'get',
-            url: util.format('/apis/%s/subscriptions?size=%d&status=%s', apiId, size, status)
+            url: util.format('/apis/%s/subscriptions?size=%d&status=%s', apiId, size, subscriptionStatus.join(','))
         };
         return this._request(requestSettings);
     }
@@ -698,6 +728,40 @@ class ManagementApi {
     }
 
     /**
+     * Subscribe the given Application identifier to the given Plan identifier
+     *
+     * @param applicationId the Application identifier to subscribe to the given Plan identifier
+     * @param planId the Plan identifier from which the given Application will subscribe
+     */
+    subscribe(applicationId, planId) {
+        const requestSettings = {
+            method: 'post',
+            url: util.format('/applications/%s/subscriptions', applicationId),
+            qs: {
+                plan: planId
+            }
+        };
+        return this._request(requestSettings);
+    }
+
+    /**
+     * Validate pending subscription on given API
+     *
+     * @param apiId the API identifier from which validate pending subscription
+     * @param subscriptionId the subscription identifier to validate
+     */
+    validateSubscription(apiId, subscriptionId) {
+        const requestSettings = {
+            method: 'post',
+            url: util.format('/apis/%s/subscriptions/%s/_process', apiId, subscriptionId),
+            body: {
+                accepted: true
+            }
+        };
+        return this._request(requestSettings);
+    }
+
+    /**
      * Do an APIM paged request.
      * This implies running multiple requests to APIM and concatenating responses.
      *
@@ -788,6 +852,9 @@ module.exports = {
     Settings: ManagementApi.Settings,
     EXPORT_EXCLUDE: EXPORT_EXCLUDE,
     EVENT_TYPE: EVENT_TYPE,
+    PLAN_STATUS: PLAN_STATUS,
+    PLAN_SECURITY_TYPE: PLAN_SECURITY_TYPE,
+    SUBSCRIPTION_STATUS: SUBSCRIPTION_STATUS,
     createInstance: function (settings) {
         return new ManagementApi(settings);
     }
