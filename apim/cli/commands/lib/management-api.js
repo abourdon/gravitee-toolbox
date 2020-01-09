@@ -359,6 +359,21 @@ class ManagementApi {
     }
 
     /**
+     * Get plan of the specified API and plan identifiers
+     *
+     * @param apiId the API identifier from which getting the plan
+     * @param planId the plan identifier from which getting plan information
+     * @returns {Observable<ObservedValueOf<*>>}
+     */
+    getApiPlan(apiId, planId) {
+        const requestSettings = {
+            method: 'get',
+            url: util.format('/apis/%s/plans/%s')
+        };
+        return this._request(requestSettings);
+    }
+
+    /**
      * Get API plans.
      *
      * @param apiId the API identifier from which getting plans.
@@ -391,6 +406,8 @@ class ManagementApi {
     /**
      * Get API subscriptions.
      *
+     * // TODO handle pagination
+     *
      * @param apiId the API identifier from which getting subscriptions.
      * @param subscriptionStatus status of the subscriptions to retrieve.
      * @param size number of subscriptions to retrieve.
@@ -400,6 +417,27 @@ class ManagementApi {
         const requestSettings = {
             method: 'get',
             url: util.format('/apis/%s/subscriptions?size=%d&status=%s', apiId, size, subscriptionStatus.join(','))
+        };
+        return this._request(requestSettings).pipe(
+            // Emit each subscription
+            flatMap(subscriptions => subscriptions.data),
+
+            // Get details about the subscription
+            flatMap(subscription => this.getApiSubscription(apiId, subscription.id)),
+        );
+    }
+
+    /**
+     * Get details about an API subscription
+     *
+     * @param apiId the API identifier from which getting the subscription
+     * @param subscriptionId the subscription identifier from which getting details
+     * @returns {Observable<ObservedValueOf<*>>}
+     */
+    getApiSubscription(apiId, subscriptionId) {
+        const requestSettings = {
+            method: 'get',
+            url: util.format('/apis/%s/subscriptions/%s', apiId, subscriptionId)
         };
         return this._request(requestSettings);
     }
@@ -411,12 +449,15 @@ class ManagementApi {
      * @param subscriptionId the subscription identifier from which getting keys.
      * @returns {Observable<any>}
      */
-    getSubscriptionKeys(apiId, subscriptionId) {
+    getApiSubscriptionKeys(apiId, subscriptionId) {
         const requestSettings = {
             method: 'get',
             url: util.format('/apis/%s/subscriptions/%s/keys', apiId, subscriptionId)
         };
-        return this._request(requestSettings);
+        return this._request(requestSettings).pipe(
+            // Emit each key
+            flatMap(keys => keys)
+        );
     }
 
     /**
@@ -430,6 +471,27 @@ class ManagementApi {
         const requestSettings = {
             method: 'get',
             url: util.format('/applications/%s/subscriptions?size=%d&status=%s', applicationId, size, status)
+        };
+        return this._request(requestSettings).pipe(
+            // Emit each subscription
+            flatMap(subscriptions => subscriptions.data),
+
+            // Get details about the subscription
+            flatMap(subscription => this.getApplicationSubscription(applicationId, subscription.id)),
+        )
+    }
+
+    /**
+     * Get details about an Application subscription
+     *
+     * @param applicationId the Application identifier from which getting the subscription
+     * @param subscriptionId the subscription identifier from which getting details
+     * @returns {Observable<ObservedValueOf<*>>}
+     */
+    getApplicationSubscription(applicationId, subscriptionId) {
+        const requestSettings = {
+            method: 'get',
+            url: util.format('/applications/%s/subscriptions/%s', applicationId, subscriptionId)
         };
         return this._request(requestSettings);
     }
