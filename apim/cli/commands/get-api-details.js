@@ -78,14 +78,12 @@ class ApiDetails extends CliCommand {
 
     enrichApiSubscriptions(managementApi, apiId, details) {
         return managementApi.getApiSubscriptions(apiId, this.argv['filter-subscription-status'], 100).pipe(
-            flatMap(subscriptions => Rx.from(subscriptions.data).pipe(
-                map(subscription => util.format('\t%s, %s, %s',
-                    subscriptions.metadata[subscription.application].name,
-                    subscriptions.metadata[subscription.plan].name,
-                    subscription.status
-                )),
-                reduce((acc, plan) => acc + "\n" + plan, "")
+            map(subscription => util.format('\t%s, %s, %s',
+                subscription.application.name,
+                subscription.plan.name,
+                subscription.status
             )),
+            reduce((acc, subscription) => acc + "\n" + subscription, ""),
             tap(subscriptions => details.subscriptions = subscriptions),
             map(subscriptions => details)
         );
