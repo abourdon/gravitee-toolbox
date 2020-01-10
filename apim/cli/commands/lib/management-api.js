@@ -133,7 +133,7 @@ class ManagementApi {
                 ),
 
                 // Apply filter on portal visibility if necessary
-                filter(api => filters.byPortalVisibility.includes(api.visibility)),
+                filter(api => !filters.byPortalVisibility || filters.byPortalVisibility.includes(api.visibility)),
 
                 // Apply delay between API emission
                 concatMap(api => Rx
