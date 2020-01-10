@@ -182,7 +182,7 @@ class ManagementApi {
                     if (!filters.byEndpointGroupName) {
                         return Rx.of(api);
                     }
-                    if (!api.proxy.groups) {
+                    if (!api.details.proxy.groups) {
                         return Rx.EMPTY;
                     }
                     return Rx
