@@ -416,7 +416,11 @@ class ManagementApi {
     getApiSubscriptions(apiId, subscriptionStatus = [SUBSCRIPTION_STATUS.ACCEPTED, SUBSCRIPTION_STATUS.PENDING, SUBSCRIPTION_STATUS.PAUSED], size = 100) {
         const requestSettings = {
             method: 'get',
-            url: util.format('/apis/%s/subscriptions?size=%d&status=%s', apiId, size, subscriptionStatus.join(','))
+            url: util.format('/apis/%s/subscriptions', apiId),
+            qs: {
+                size: size,
+                status: subscriptionStatus.join(',')
+            }
         };
         return this._request(requestSettings).pipe(
             // Emit each subscription
