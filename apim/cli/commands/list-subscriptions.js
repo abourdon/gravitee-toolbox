@@ -81,10 +81,10 @@ class ListSubscriptions extends CliCommand {
                 filter(subscription => !this.argv['application-id'] || subscription.application.id === this.argv['application-id']),
 
                 // Filter by application name if necessary
-                filter(subscription => !this.argv['filter-by-application-name'] || StringUtils.caseInsensitiveSearch(subscription.application.name, this.argv['filter-by-application-name'])),
+                filter(subscription => !this.argv['filter-by-application-name'] || StringUtils.caseInsensitiveMatches(subscription.application.name, this.argv['filter-by-application-name'])),
 
                 // Filter by plan name if necessary
-                filter(subscription => !this.argv['filter-by-plan-name'] || StringUtils.caseInsensitiveSearch(subscription.plan.name, this.argv['filter-by-plan-name'])),
+                filter(subscription => !this.argv['filter-by-plan-name'] || StringUtils.caseInsensitiveMatches(subscription.plan.name, this.argv['filter-by-plan-name'])),
 
                 // Filter by subscription status if necessary
                 filter(subscription => !this.argv['filter-by-subscription-status'] || this.argv['filter-by-subscription-status'].includes(subscription.status)),
