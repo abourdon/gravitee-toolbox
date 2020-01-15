@@ -38,6 +38,11 @@ const SUBSCRIPTION_STATUS = {
     REJECTED: 'rejected',
     CLOSED: 'closed'
 };
+const POLICY_CONFIGURATION_KEY = {
+    METHODS: 'methods',
+    DESCRIPTION: 'description',
+    ENABLED: 'enabled'
+};
 
 /**
  * Gravitee.io APIM's Management API client instance.
@@ -158,6 +163,7 @@ class ManagementApi {
      * - byEndpointName: to search against endpoint name (insensitive regular expression)
      * - byEndpointTarget: to search against endpoint target (insensitive regular expression)
      * - byPlanName: to search against plan name (insensitive regular expression)
+     * - byPolicyTechnicalName: to search against the policy technical name (insensitive regular expression)
      *
      * @param {object} filters an object containing desired filters if necessary
      * @param {number} delayPeriod the delay period to temporize API broadcast (by default 50 milliseconds)
@@ -239,20 +245,44 @@ class ManagementApi {
                     if (!filters.byPolicyTechnicalName) {
                         return Rx.of(api);
                     }
-                    return Rx
-                        .of(api)
-                        .pipe(
-                            flatMap(api => api.details.paths ? Rx.from(Object.keys(api.details.paths)) : Rx.EMPTY),
-                            flatMap(path => Rx.from(api.details.paths[path])),
-                            flatMap(policy => Rx.from(Object.keys(policy))),
-                            filter(policyConfiguration => StringUtils.caseInsensitiveMatches(policyConfiguration, filters.byPolicyTechnicalName)),
-                            map(() => api),
+                    return _applyFilterOnBothPlansAndDesignPaths(api, (api, paths) => {
+                        return paths.pipe(
+                            // For each path
+                            flatMap(paths => Object.values(paths)),
 
-                            // Only keep unique API result
-                            distinct(api => api.id)
-                        )
+                            // And each policy
+                            flatMap(policies => policies),
+
+                            // Get its configuration keys
+                            flatMap(policy => Rx.from(Object.keys(policy))),
+
+                            // Retrieve only the policy name
+                            filter(policyConfigurationKey => !Object.values(POLICY_CONFIGURATION_KEY).includes(policyConfigurationKey)),
+
+                            // Then filter the policy technical name according to the given filter
+                            filter(policyTechnicalName => StringUtils.caseInsensitiveMatches(policyTechnicalName, filters.byPolicyTechnicalName))
+                        )});
                 })
             );
+
+        /**
+         * Utility function that applies a given filter on both API design and plans' paths
+         *
+         * @param api the api from which filter their plans and design paths
+         * @param filter the filter to apply (that takes the api and the path in argument)
+         * @returns {*}
+         * @private
+         */
+        function _applyFilterOnBothPlansAndDesignPaths(api, filter) {
+            const designPaths = Rx.of(api.details.paths);
+            const plansPaths = api.details.plans ? Rx.from(api.details.plans).pipe(
+                map(plan => plan.paths)
+            ) : Rx.EMPTY;
+            return Rx.merge(filter(api, designPaths), filter(api, plansPaths)).pipe(
+                map(() => api),
+                distinct(api => api.id)
+            );
+        }
     }
 
     /**
