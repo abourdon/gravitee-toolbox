@@ -4,7 +4,7 @@ const request = require('request-promise');
 const Rx = require('rxjs');
 const {concatMap, distinct, expand, filter, flatMap, map, reduce, take, tap} = require('rxjs/operators');
 
-const DEFAULT_TIMEOUT = 10000;
+const DEFAULT_TIMEOUT = 20000;
 const HEADER_SEPARATOR = ':';
 const EXPORT_EXCLUDE = {
     GROUPS: 'groups',
@@ -163,6 +163,7 @@ class ManagementApi {
      * - byEndpointName: to search against endpoint name (insensitive regular expression)
      * - byEndpointTarget: to search against endpoint target (insensitive regular expression)
      * - byPlanName: to search against plan name (insensitive regular expression)
+     * - byPlanSecurityType: to search against plan security type
      * - byPolicyTechnicalName: to search against the policy technical name (insensitive regular expression)
      *
      * @param {object} filters an object containing desired filters if necessary
@@ -225,14 +226,15 @@ class ManagementApi {
 
                 // Apply filter on plans if necessary
                 flatMap(api => {
-                    if (!filters.byPlanName) {
+                    if (!filters.byPlanName && !filters.byPlanSecurityType) {
                         return Rx.of(api);
                     }
                     return Rx
                         .of(api)
                         .pipe(
                             flatMap(api => api.details.plans ? Rx.from(api.details.plans) : Rx.EMPTY),
-                            filter(plan => StringUtils.caseInsensitiveMatches(plan.name, filters.byPlanName)),
+                            filter(plan => !filters.byPlanName || StringUtils.caseInsensitiveMatches(plan.name, filters.byPlanName)),
+                            filter(plan => !filters.byPlanSecurityType || StringUtils.caseInsensitiveMatches(plan.security, filters.byPlanSecurityType)),
                             map(() => api),
 
                             // Only keep unique API result

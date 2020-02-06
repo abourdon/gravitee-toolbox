@@ -7,3 +7,7 @@
 
 # NodeJS resources
 node_modules/
+
+# Eclipse resources
+/.project
+/.settings/
