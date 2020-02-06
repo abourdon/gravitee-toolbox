@@ -1,5 +1,5 @@
 const {CliCommand, CsvCliCommandReporter} = require('./lib/cli-command');
-const {API_PORTAL_VISBILITY} = require('./lib/management-api');
+const {API_PORTAL_VISBILITY, PLAN_SECURITY_TYPE} = require('./lib/management-api');
 const {flatMap, map} = require('rxjs/operators');
 
 const NO_DELAY_PERIOD = 0;
@@ -50,6 +50,12 @@ class ListApis extends CliCommand {
                     describe: "Filter APIs against plan name (insensitive regex)",
                     type: 'string'
                 },
+                'filter-by-plan-security-type': {
+                    describe: "Filter APIs against plan type (insensitive regex)",
+                    type: 'string',
+                    choices: Object.values(PLAN_SECURITY_TYPE),
+                    default: Object.values(PLAN_SECURITY_TYPE)
+                },
                 'filter-by-policy-technical-name': {
                     describe: 'Filter APIs against their policy technical names (insensitive regex) (see https://docs.gravitee.io/apim_policies_overview.html for more details)'
                 }
@@ -79,6 +85,7 @@ class ListApis extends CliCommand {
                             byEndpointName: this.argv['filter-by-endpoint-name'],
                             byEndpointTarget: this.argv['filter-by-endpoint-target'],
                             byPlanName: this.argv['filter-by-plan-name'],
+                            byPlanSecurityType: this.argv['filter-by-plan-security-type'],
                             byPolicyTechnicalName: this.argv['filter-by-policy-technical-name']
                         });
                 }),
