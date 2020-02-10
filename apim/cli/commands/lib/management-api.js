@@ -234,7 +234,7 @@ class ManagementApi {
                         .pipe(
                             flatMap(api => api.details.plans ? Rx.from(api.details.plans) : Rx.EMPTY),
                             filter(plan => !filters.byPlanName || StringUtils.caseInsensitiveMatches(plan.name, filters.byPlanName)),
-                            filter(plan => !filters.byPlanSecurityType || StringUtils.caseInsensitiveMatches(plan.security, filters.byPlanSecurityType)),
+                            filter(plan => !filters.byPlanSecurityType || filters.byPlanSecurityType.filter(filter => filter.toUpperCase() === plan.security).length !== 0),
                             map(() => api),
 
                             // Only keep unique API result

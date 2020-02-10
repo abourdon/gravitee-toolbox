@@ -31,8 +31,7 @@ class ListApis extends CliCommand {
                 'filter-by-portal-visibility': {
                     describe: 'Filter APIs against their visibility into the Portal',
                     type: 'array',
-                    choices: Object.values(API_PORTAL_VISBILITY),
-                    default: Object.values(API_PORTAL_VISBILITY)
+                    choices: Object.values(API_PORTAL_VISBILITY)
                 },
                 'filter-by-endpoint-group-name': {
                     describe: "Filter APIs against endpoint group name (insensitive regex)",
@@ -52,9 +51,8 @@ class ListApis extends CliCommand {
                 },
                 'filter-by-plan-security-type': {
                     describe: "Filter APIs against plan type (insensitive regex)",
-                    type: 'string',
-                    choices: Object.values(PLAN_SECURITY_TYPE),
-                    default: Object.values(PLAN_SECURITY_TYPE)
+                    type: 'array',
+                    choices: Object.values(PLAN_SECURITY_TYPE)
                 },
                 'filter-by-policy-technical-name': {
                     describe: 'Filter APIs against their policy technical names (insensitive regex) (see https://docs.gravitee.io/apim_policies_overview.html for more details)'
