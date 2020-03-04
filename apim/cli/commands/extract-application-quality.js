@@ -71,7 +71,7 @@ class ExtractApplicationQuality extends CliCommand {
                 'elasticsearch-index': {
                     describe: 'Elasticsearch request index to search (can be an index pattern as gravitee-request-2019.10.*)',
                     type: 'string',
-                    demandOption: true
+                    default: 'gravitee-request-*'
                 }
             }
         );
@@ -183,10 +183,7 @@ class ExtractApplicationQuality extends CliCommand {
 
     evaluateUsage(app, managementApi, elasticsearch) {
         return elasticsearch.searchHits(
-            this.argv['elasticsearch-index'],
-            this.argv['evaluate-runtime-from'],
-            this.argv['evaluate-runtime-to'],
-            [['application', app.id]],
+            new ElasticSearch.Search(this.argv['elasticsearch-index'], [['application', app.id]], this.argv['evaluate-runtime-from'], this.argv['evaluate-runtime-to']),
             ONLY_ONE_ES_RESULT
         ).pipe(
             take(ONLY_ONE_ES_RESULT),

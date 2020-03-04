@@ -3,7 +3,7 @@ const ElasticSearch = require('./lib/elasticsearch');
 const { QualityCriterion, convertQualityCriteria } = require('./lib/quality-criteria-converter');
 const Rx = require('rxjs')
 const { filter, flatMap, map, reduce, tap } = require('rxjs/operators');
-const util = require('util')
+const util = require('util');
 
 const DESCRIPTION_MIN_LENGTH = 100;
 const FUNCTIONAL_DOC_TYPE = "MARKDOWN";
@@ -207,10 +207,15 @@ class ExtractApiQuality extends CliCommand {
                     describe: 'Additional HTTP header',
                     type: 'array'
                 },
-                'elasticsearch-index': {
+                'elasticsearch-request-index': {
                     describe: 'Elasticsearch request index',
                     type: 'string',
                     default: 'gravitee-request-*'
+                },
+                'elasticsearch-health-index': {
+                    describe: 'Elasticsearch health index',
+                    type: 'string',
+                    default: 'gravitee-health-*'
                 },
                 'name-regex': {
                     describe: 'Regex for API name convention criterion evaluation',
@@ -355,11 +360,8 @@ class ExtractApiQuality extends CliCommand {
             }
         };
         return elasticsearch.aggregateHits(
-            this.argv['elasticsearch-index'],
-            aggregation,
-            util.format("now-%s", this.argv['runtime-duration']),
-            'now',
-            [["api", apiId]]
+            new ElasticSearch.Search(this.argv['elasticsearch-request-index'], [["api", apiId]], util.format("now-%s", this.argv['runtime-duration'])),
+            aggregation
         ).pipe(
             map(esResult => {
                 var total = esResult.hits.total;
@@ -382,11 +384,8 @@ class ExtractApiQuality extends CliCommand {
             }
         };
         return elasticsearch.aggregateHits(
-            this.argv['elasticsearch-index'],
-            aggregation,
-            util.format("now-%s", this.argv['runtime-duration']),
-            'now',
-            [["api", apiId]]
+            new ElasticSearch.Search(this.argv['elasticsearch-request-index'], [["api", apiId]], util.format("now-%s", this.argv['runtime-duration'])),
+            aggregation
         ).pipe(
             map(esResult => Object.assign({
                 '50': esResult.aggregations.ResponseTime.values['50.0'],
@@ -408,12 +407,36 @@ class ExtractApiQuality extends CliCommand {
     }
 
     evaluateHealthCheckAvailability(managementApi, elasticsearch, threshold, apiId) {
-        return managementApi.getApiHealthCheckAvailability(apiId).pipe(
-            map(response => response.global == undefined ? 0 : response.global[this.argv['runtime-duration']]),
-            map(availability => new QualityCriterion(
-                CRITERIA.healthCheckAvailability.description,
-                CRITERIA.healthCheckAvailability.reference,
-                availability > threshold.healthCheckAvailability))
+        const aggregation = {
+            "Availability": {
+                "terms" : {
+                    "field" : "available",
+                    "size" : 2,
+                    "order" : [
+                        {"_count" : "desc"},
+                        {"_key" : "asc"}
+                    ]
+                }
+            }
+        };
+        return elasticsearch.aggregateHits(
+            new ElasticSearch.Search(this.argv['elasticsearch-health-index'], [["api", apiId]], util.format("now-%s", this.argv['runtime-duration'])),
+            aggregation,
+            30000
+        ).pipe(
+            map(esResult => {
+                var buckets = esResult.aggregations.Availability.buckets;
+                var availables = buckets.filter(b => b.key_as_string === "true");
+                var available = availables.length === 1 ? Number(availables.map(b => b.doc_count)) : 0;
+                var unavailables = buckets.filter(b => b.key_as_string === "false");
+                var unavailable = unavailables.length === 1 ? Number(unavailables.map(b => b.doc_count)) : 0;
+                var total = available + unavailable;
+                var availability = total === 0 ? 0 : (available / total * 100);
+                return new QualityCriterion(
+                    CRITERIA.healthCheckAvailability.description,
+                    CRITERIA.healthCheckAvailability.reference,
+                    availability >= threshold.healthCheckAvailability);
+            })
         );
     }
 
