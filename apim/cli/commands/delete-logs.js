@@ -64,10 +64,12 @@ class DeleteLogs extends CliCommand {
         const elasticsearch = ElasticSearch.createInstance(new ElasticSearch.Settings(this.argv['elasticsearch-url'], this.argv['elasticsearch-url-header']));
 
         elasticsearch.deleteByQuery(
-            this.argv['elasticsearch-index'],
-            this.argv['from'],
-            this.argv['to'],
-            [["_type", "log"], ["api", this.argv['api-id']]]
+            new ElasticSearch.Search(
+                this.argv['elasticsearch-index'],
+                [["_type", "log"], ["api", this.argv['api-id']]],
+                this.argv['from'],
+                this.argv['to']
+            )
          ).subscribe(this.defaultSubscriber(
             deletionResult => {
                 this.displayInfo(util.format('Deleted %d logs', deletionResult.deleted));
