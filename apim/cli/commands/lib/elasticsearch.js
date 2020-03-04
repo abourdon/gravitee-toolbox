@@ -38,11 +38,11 @@ class ElasticSearch {
               "query": search.query,
               "sort": [
                 {[search.timeKey]: "asc"},
-                {"_uid": "desc"}
+                {"_id": "desc"}
               ]
             }
         };
-        return this._requestAllPages(requestSettings);
+        return (pageSize > 0) ? this._requestAllPages(requestSettings) : this._request(requestSettings);
     }
 
     /**

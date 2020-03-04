@@ -9,7 +9,7 @@ const util = require('util');
 const CSV_SEPARATOR = ',';
 const DESCRIPTION_MIN_LENGTH = 30;
 const LIST_APPLICATIONS_TIMEOUT = 30000;
-const ONLY_ONE_ES_RESULT = 1;
+const NO_ES_RESULT = 0;
 
 /*
  * Application name is composed of:
@@ -184,10 +184,9 @@ class ExtractApplicationQuality extends CliCommand {
     evaluateUsage(app, managementApi, elasticsearch) {
         return elasticsearch.searchHits(
             new ElasticSearch.Search(this.argv['elasticsearch-index'], [['application', app.id]], this.argv['evaluate-runtime-from'], this.argv['evaluate-runtime-to']),
-            ONLY_ONE_ES_RESULT
+            NO_ES_RESULT
         ).pipe(
-            take(ONLY_ONE_ES_RESULT),
-            map(hit => hit.meta.total > 0)
+            map(response => response.hits.total > 0)
         );
     }
 
