@@ -3,6 +3,9 @@ const request = require('request-promise');
 const Rx = require('rxjs');
 const { catchError, concatMap, expand, filter, flatMap, map, reduce, take } = require('rxjs/operators')
 
+const WILDCARD_INDEX = '-*';
+const DEFAULT_TIMEOUT = 10000;
+
 /**
  * Elasticsearch client instance.
  *
@@ -20,36 +23,21 @@ class ElasticSearch {
     }
 
     /**
-     * Search hits in the specified index pattern corresponding to the specified terms for the specified time range.
+     * Search hits in indexes corresponding to the specified search.
      *
-     * @param {string} elasticsearch index name pattern
-     * @param {string} time range lower bound
-     * @param {string} time range upper bound
-     * @param {map} search terms (optional)
+     * @param {object} Search object containing query and index
      * @param {number} page size (default = 100)
-     * @param {string} time key in index (default = "@timestamp")
      * @return a stream of Elasticsearch documents
      */
-    searchHits(indexPattern, from, to = 'now', searchTerms = [], pageSize = 100, timeKey = "@timestamp") {
-        var terms = Array.from(searchTerms)
-            .map(([key, value]) => ({ "term": { [key]: { "value": value } } }))
-            .reduce((acc, term) => acc.concat(term), []);
-        terms.push({"range":{[timeKey]:{"gte":from,"lte":to}}});
-
+    searchHits(search, pageSize = 100) {
         const requestSettings = {
             method: 'get',
-            url: util.format('%s/_search', indexPattern),
+            url: util.format('%s/_search', search.indexName),
             body: {
               "size": pageSize,
-              "query": {
-                "bool": {
-                  "must": [
-                    terms
-                  ]
-                }
-              },
+              "query": search.query,
               "sort": [
-                {[timeKey]: "asc"},
+                {[search.timeKey]: "asc"},
                 {"_uid": "desc"}
               ]
             }
@@ -57,57 +45,39 @@ class ElasticSearch {
         return this._requestAllPages(requestSettings);
     }
 
-    aggregateHits(indexName, aggregation, from, to = 'now', searchTerms = [], timeKey = "@timestamp") {
-        const terms = Array.from(searchTerms)
-            .map(([key, value]) => ({ "term": { [key]: { "value": value } } }))
-            .reduce((acc, term) => acc.concat(term), []);
-        terms.push({"range":{[timeKey]:{"gte":from,"lte":to}}});
-
+    /**
+     * Aggregates hits from indexes corresponding to the specified search.
+     *
+     * @param {object} Search object containing query and index
+     * @param {string} aggregation definition.
+     * @return a stream of Elasticsearch aggregations.
+     */
+    aggregateHits(search, aggregation, timeout = DEFAULT_TIMEOUT) {
         const requestSettings = {
             method: 'get',
-            url: util.format('%s/_search', indexName),
+            url: util.format('%s/_search', search.indexName),
             body: {
               "size": 0,
-              "query": {
-                "bool": {
-                  "must": [
-                    terms
-                  ]
-                }
-              },
+              "query": search.query,
               "aggs" : aggregation
-            }
+            },
+            timeout: timeout
         };
         return this._request(requestSettings);
     }
 
     /**
-     * Deletes hits from the specified index corresponding to the specified terms for the specified time range.
+     * Deletes hits from indexes corresponding to the specified search.
      *
-     * @param {string} elasticsearch index name
-     * @param {string} time range lower bound
-     * @param {string} time range upper bound
-     * @param {map} search terms (optional)
-     * @param {string} time key in index (default = "@timestamp")
+     * @param {object} Search object containing query and index
      * @return the deletion result.
      */
-    deleteByQuery(indexName, from, to = 'now', searchTerms = [], timeKey = "@timestamp") {
-        const terms = Array.from(searchTerms)
-            .map(([key, value]) => ({ "term": { [key]: { "value": value } } }))
-            .reduce((acc, term) => acc.concat(term), []);
-        terms.push({"range":{[timeKey]:{"gte":from,"lte":to}}});
-
+    deleteByQuery(search) {
         const requestSettings = {
             method: 'post',
-            url: util.format('%s/_delete_by_query', indexName),
+            url: util.format('%s/_delete_by_query', search.indexName),
             body: {
-              "query": {
-                "bool": {
-                  "must": [
-                    terms
-                  ]
-                }
-              }
+              "query": search.query
             }
         };
         return this._request(requestSettings);
@@ -194,10 +164,39 @@ class ElasticSearch {
 
         // If no timeout is defined then set a default one to 10s
         if (!requestSettings.timeout) {
-            requestSettings.timeout = 10000;
+            requestSettings.timeout = DEFAULT_TIMEOUT;
         }
 
         return Rx.from(request(requestSettings));
+    }
+}
+
+ElasticSearch.Search = class {
+    /**
+     * @param {string} elasticsearch index name (default = 'gravitee-request-*')
+     * @param {map} search terms (optional)
+     * @param {string} time range lower bound (default = 'now-1M')
+     * @param {string} time range upper bound (default = 'now')
+     * @param {string} time key in index (default = '@timestamp')
+     */
+    constructor(indexName = 'gravitee-request-*', searchTerms = [], from = 'now-1M', to = 'now', timeKey = '@timestamp') {
+        const terms = Array.from(searchTerms)
+            .map(([key, value]) => ({ "term": { [key]: { "value": value } } }))
+            .reduce((acc, term) => acc.concat(term), []);
+        if (indexName.endsWith(WILDCARD_INDEX)) {
+            terms.push({"range":{[timeKey]:{"gte":from,"lte":to}}});
+        }
+
+        this.indexName = indexName;
+        this.timeKey = timeKey;
+        this.query =
+        {
+          "bool": {
+            "must": [
+              terms
+            ]
+          }
+        };
     }
 }
 
@@ -226,6 +225,7 @@ ElasticSearchResult = class {
 }
 
 module.exports = {
+    Search: ElasticSearch.Search,
     Settings: ElasticSearch.Settings,
     createInstance: function(settings) {
         return new ElasticSearch(settings);
