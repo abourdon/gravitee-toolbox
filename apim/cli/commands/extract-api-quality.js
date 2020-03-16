@@ -2,7 +2,7 @@ const { CliCommand, CsvCliCommandReporter } = require('./lib/cli-command');
 const ElasticSearch = require('./lib/elasticsearch');
 const { QualityCriterion, convertQualityCriteria } = require('./lib/quality-criteria-converter');
 const Rx = require('rxjs')
-const { filter, flatMap, map, reduce } = require('rxjs/operators');
+const { filter, flatMap, map, reduce, take } = require('rxjs/operators');
 const util = require('util');
 
 const DESCRIPTION_MIN_LENGTH = 100;
@@ -137,7 +137,14 @@ const apiDetailsCriteriaEvaluators = [
     },
     {
         criterion: CRITERIA.contextPathNamingConvention,
-        evaluate: matchNamingConvention(api => api.proxy.context_path, command => command.argv['context-path-regex'])
+        evaluate: function(api, command) {
+            for (virtualHost in api.proxy.virtual_hosts) {
+                if (matchNamingConvention(api => virtualHost, command => command.argv['context-path-regex'])) {
+                    return true;
+                }
+            }
+            return false;
+        }
     },
     {
         criterion: CRITERIA.endpointsNamingConvention,
@@ -190,6 +197,11 @@ class ExtractApiQuality extends CliCommand {
                 },
                 'evaluate-runtime': {
                     describe: "Indicates whether the runtime criteria must be evaluated",
+                    type: 'boolean',
+                    default: false
+                },
+                'update-quality-rules': {
+                    describe: "Update corresponding quality rules in Gravitee for each API, based on quality rule names. If a quality rule does not exist in Gravitee, does nothing",
                     type: 'boolean',
                     default: false
                 },
@@ -263,6 +275,7 @@ class ExtractApiQuality extends CliCommand {
                 flatMap(criteria => managementApi.getApi(apiId).pipe(
                     map(api => Object.assign({api: api, type: this.getApiType(api), criteria: criteria}))
                 )),
+                flatMap(apiQuality => this.updateGraviteeApiQualityRules(managementApi, apiQuality)),
                 map(apiQuality => Array
                     .from(apiQuality.criteria)
                     .reduce((acc, criteria) => acc.concat(criteria.complied), [apiQuality.api.id, apiQuality.api.name, apiQuality.type])
@@ -432,6 +445,45 @@ class ExtractApiQuality extends CliCommand {
                     CRITERIA.healthCheckAvailability.description,
                     CRITERIA.healthCheckAvailability.reference,
                     availability >= threshold.healthCheckAvailability);
+            })
+        );
+    }
+
+    updateGraviteeApiQualityRules(managementApi, apiQuality) {
+        if (this.argv['update-quality-rules']) {
+            return managementApi.getQualityRules().pipe(
+                flatMap(rules => Rx.from(rules)),
+                flatMap(rule => {
+                    var relatedCriteria = apiQuality.criteria.filter(criterion => criterion.reference === rule.name);
+                    if (relatedCriteria.length > 0) {
+                        return Rx.of(Object.assign({
+                            "apiQuality": apiQuality,
+                            "apiId": apiQuality.api.id,
+                            "ruleId": rule.id,
+                            "checked": relatedCriteria[0].complied
+                        }));
+                    }
+                    return Rx.EMPTY;
+                }),
+                flatMap(update => this.updateGraviteeApiQualityRule(managementApi, update)),
+                take(1)
+            )
+        }
+        return Rx.of(apiQuality);
+    }
+
+    updateGraviteeApiQualityRule(managementApi, updateRule) {
+        return managementApi.getQualityRule(updateRule.apiId, updateRule.ruleId).pipe(
+            flatMap(rule => {
+                var updateExecution;
+                if (rule !== undefined) {
+                    updateExecution = managementApi.updateQualityRule(updateRule.apiId, updateRule.ruleId, updateRule.checked);
+                } else {
+                    updateExecution = managementApi.createQualityRule(updateRule.apiId, updateRule.ruleId, updateRule.checked);
+                }
+                return updateExecution.pipe(
+                    map(updateResult => updateRule.apiQuality)
+                );
             })
         );
     }

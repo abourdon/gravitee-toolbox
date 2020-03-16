@@ -376,6 +376,78 @@ class ManagementApi {
     }
 
     /**
+     * Get the quality rules.
+     *
+     * @returns {Observable<any>} the list of quality rules.
+     */
+    getQualityRules() {
+        const requestSettings = {
+            method: 'get',
+            url: 'configuration/quality-rules'
+        };
+        return this._request(requestSettings);
+    }
+
+    /**
+     * Gets the quality rule corresponding to the specified rule ID.
+     *
+     * @param apiId the API identifier from which getting quality rules.
+     * @param ruleId the rule identifier.
+     * @returns {Observable<any>} an observable containing the rule corresponding to ruleId, or undefined if none corresponds.
+     */
+    getQualityRule(apiId, ruleId) {
+        const requestSettings = {
+            method: 'get',
+            url: util.format('apis/%s/quality-rules', apiId)
+        }
+        return this._request(requestSettings).pipe(
+            flatMap(rules => {
+                var found = Rx.of(undefined);
+                rules.forEach(rule => {
+                    if (rule.quality_rule === ruleId) {
+                        found = Rx.of(rule);
+                    }
+                });
+                return found;
+            })
+        );
+    }
+
+    /**
+     * Create the specified quality rule for the specified API.
+     *
+     * @param apiId the API identifier
+     * @param ruleId the quality rule identifier
+     * @param checked indicates whether the quality rule is checked for the API
+     * @returns {Observable<any>}
+     */
+    createQualityRule(apiId, ruleId, checked) {
+        const requestSettings = {
+            method: 'post',
+            url: util.format('apis/%s/quality-rules', apiId),
+            body: {"api": apiId, "quality_rule": ruleId, "checked": checked}
+        };
+        return this._request(requestSettings);
+    }
+
+    /**
+     * Updates the specified quality rule for the specified API.
+     *
+     * @param apiId the API identifier
+     * @param ruleId the quality rule identifier
+     * @param checked indicates whether the quality rule is checked for the API
+     * @returns {Observable<any>}
+     */
+    updateQualityRule(apiId, ruleId, checked) {
+        const requestSettings = {
+            method: 'put',
+            url: util.format('apis/%s/quality-rules/%s', apiId, ruleId),
+            body: {"checked": checked}
+        };
+        return this._request(requestSettings);
+    }
+
+    /**
      * Get API metadata.
      *
      * @param apiId the API identifier from which getting metadata
