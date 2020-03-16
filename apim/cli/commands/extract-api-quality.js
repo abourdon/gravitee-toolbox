@@ -1,8 +1,8 @@
-const { CliCommand } = require('./lib/cli-command');
+const { CliCommand, CsvCliCommandReporter } = require('./lib/cli-command');
 const ElasticSearch = require('./lib/elasticsearch');
 const { QualityCriterion, convertQualityCriteria } = require('./lib/quality-criteria-converter');
 const Rx = require('rxjs')
-const { filter, flatMap, map, reduce, tap } = require('rxjs/operators');
+const { filter, flatMap, map, reduce } = require('rxjs/operators');
 const util = require('util');
 
 const DESCRIPTION_MIN_LENGTH = 100;
@@ -256,28 +256,22 @@ class ExtractApiQuality extends CliCommand {
             this.validateSupportEmailDefined,
             this.evaluateRuntimeCriteria);
         apiIds.pipe(
-            tap(apiId => this.displayInfo(util.format("Get quality metrics for API %s", apiId))),
             flatMap(apiId => qualityFunctions.pipe(
                 flatMap(qualityFunction => qualityFunction.bind(this)(managementApi, elasticsearch, apiId)),
                 reduce((acc, criteria) => acc.concat(criteria), []),
                 map(criteria => criteria.sort((c1, c2) => c1.reference.localeCompare(c2.reference))),
                 flatMap(criteria => managementApi.getApi(apiId).pipe(
                     map(api => Object.assign({api: api, type: this.getApiType(api), criteria: criteria}))
-                ))
-            )),
-            reduce((acc, apiQuality) => acc.concat(apiQuality), [])
-        ).subscribe(this.defaultSubscriber(
-             apisQuality => {
-                 this.displayInfo("CSV content:");
-                 this.displayRaw("API id,API name,API type," + Object.values(CRITERIA).reduce((acc, criterion) => acc + criterion.reference + ",", ""));
-                 apisQuality.forEach((apiQuality, i) =>
-                     this.displayRaw(apiQuality.api.id + "," +
-                                     apiQuality.api.name + "," +
-                                     apiQuality.type + "," +
-                                     Array.from(apiQuality.criteria).reduce((acc, criteria) => acc + criteria.complied + ",", ""))
-                 );
-             }
-         ));
+                )),
+                map(apiQuality => Array
+                    .from(apiQuality.criteria)
+                    .reduce((acc, criteria) => acc.concat(criteria.complied), [apiQuality.api.id, apiQuality.api.name, apiQuality.type])
+                )
+            ))
+        ).subscribe(new CsvCliCommandReporter(
+            Object.values(CRITERIA).reduce((acc, criterion) => acc.concat(criterion.reference), ["API id","API name","API type"]),
+            this
+        ));
     }
 
     getApiType(api) {
@@ -361,7 +355,8 @@ class ExtractApiQuality extends CliCommand {
         };
         return elasticsearch.aggregateHits(
             new ElasticSearch.Search(this.argv['elasticsearch-request-index'], [["api", apiId]], util.format("now-%s", this.argv['runtime-duration'])),
-            aggregation
+            aggregation,
+            30000
         ).pipe(
             map(esResult => {
                 var total = esResult.hits.total;
@@ -385,7 +380,8 @@ class ExtractApiQuality extends CliCommand {
         };
         return elasticsearch.aggregateHits(
             new ElasticSearch.Search(this.argv['elasticsearch-request-index'], [["api", apiId]], util.format("now-%s", this.argv['runtime-duration'])),
-            aggregation
+            aggregation,
+            30000
         ).pipe(
             map(esResult => Object.assign({
                 '50': esResult.aggregations.ResponseTime.values['50.0'],
@@ -449,4 +445,5 @@ class ExtractApiQuality extends CliCommand {
     }
 
 }
+
 new ExtractApiQuality().run();
