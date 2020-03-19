@@ -526,6 +526,46 @@ class ManagementApi {
     }
 
     /**
+     * List all documentation pages related to an API according to the optional given filters.
+     * Each matched documentation page is emitted individually
+     *
+     * Available filters are:
+     * - byName: to search against documentation page name (insensitive regular expression)
+     * - byType: to search against documentation page type
+     *
+     * @param {string} the API containing documentation pages
+     * @param {object} filters an object containing desired filters if necessary
+     * @returns {Observable<any>} the filtered pages
+     */
+    getDocumentationPages(apiId, filters = {}) {
+        const requestSettings = {
+            method: 'get',
+            url: util.format('apis/%s/pages', apiId)
+        };
+        return this._request(requestSettings)
+            .pipe(
+                flatMap(pages => Rx.from(pages)),
+                filter(page => !filters.byName || StringUtils.caseInsensitiveMatches(page.name, filters.byName)),
+                filter(page => !filters.byType || StringUtils.caseInsensitiveMatches(page.type, filters.byType))
+            );
+    }
+
+    /**
+     * Fetches a documentation page corresponding to an API
+     *
+     * @param apiId the API identifier
+     * @param pageId the page identifier
+     * @returns {Observable<any>} the page
+     */
+    fetchDocumentationPage(apiId, pageId) {
+        const requestSettings = {
+            method: 'post',
+            url: util.format('/apis/%s/pages/%s/_fetch', apiId, pageId)
+        };
+        return this._request(requestSettings);
+    }
+
+    /**
      * Get export of the API with given apiId
      *
      * @param {string} apiId to identify the API to export
