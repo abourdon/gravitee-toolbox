@@ -43,6 +43,12 @@ const POLICY_CONFIGURATION_KEY = {
     DESCRIPTION: 'description',
     ENABLED: 'enabled'
 };
+const HEALTH_LOG_STATES = [
+    'DOWN',
+    'TRANSITIONALLY_DOWN',
+    'TRANSITIONALLY_UP',
+    'UP'
+];
 
 /**
  * Gravitee.io APIM's Management API client instance.
@@ -563,6 +569,48 @@ class ManagementApi {
             url: util.format('/apis/%s/pages/%s/_fetch', apiId, pageId)
         };
         return this._request(requestSettings);
+    }
+
+    /**
+     * Get API health logs.
+     *
+     * @param apiId the API identifier from which getting health logs.
+     * @param transition indicates whether only transition health logs are retrieved.
+     * @param pageSize number of health logs to retrieve per page.
+     * @returns {Observable<B>} emit each health log.
+     */
+    getApiHealthLogs(apiId, transition = true, pageSize = 10) {
+        var currentPage = 1;
+        const requestSettings = {
+            method: 'get',
+            url: util.format('/apis/%s/health/logs', apiId),
+            qs: {
+                page: currentPage,
+                size: pageSize,
+                transition: transition
+            }
+        };
+        return this._request(requestSettings).pipe(
+            expand(response => {
+                return response.total - (pageSize * currentPage++) <= 0
+                    ? Rx.empty()
+                    : this._request({
+                        method: 'get',
+                        url: util.format('/apis/%s/health/logs', apiId),
+                        qs: {
+                            page: currentPage,
+                            size: pageSize,
+                            transition: transition
+                        }
+                    });
+            }),
+            flatMap(response => Rx.from(response.logs).pipe(
+                tap(healthLog => {
+                    healthLog.state = HEALTH_LOG_STATES[healthLog.state];
+                    healthLog.gateway = response.metadata[healthLog.gateway].hostname
+                })
+            ))
+        );
     }
 
     /**
