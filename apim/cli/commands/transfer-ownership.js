@@ -25,6 +25,10 @@ class TransferOwnership extends CliCommand {
                 'filter-by-name': {
                     describe: 'Filter APIs or applications against their name (insensitive regex)'
                 },
+                'filter-by-primary-owner': {
+                    describe: "Filter APIs against its primary owner name or address (insensitive regex)",
+                    type: 'string'
+                },
                 'owner': {
                     describe: 'Owner search term (either name or LDAP UID)',
                     demandOption: true
@@ -84,9 +88,11 @@ class TransferOwnership extends CliCommand {
         return (this.argv['type'] == 'api' ?
             managementApi.listApisBasics({
                 byName: this.argv['filter-by-name'],
+                byPrimaryOwner: this.argv['filter-by-primary-owner']
             }, 0) :
             managementApi.listApplications({
                 byName: this.argv['filter-by-name'],
+                byPrimaryOwner: this.argv['filter-by-primary-owner']
             }, 0))
             .pipe(
                 reduce((acc, element) => acc.concat(element), []),

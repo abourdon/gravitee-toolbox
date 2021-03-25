@@ -322,6 +322,12 @@ class ManagementApi {
                 // Filter on application name if necessary
                 filter(app => !filters.byName || StringUtils.caseInsensitiveMatches(app.name, filters.byName)),
 
+                // Apply filter on primary owner if necessary
+                filter(app => !filters.byPrimaryOwner && typeof app.owner !== 'undefined'
+                    || StringUtils.caseInsensitiveMatches(app.owner.displayName, filters.byPrimaryOwner)
+                    || (typeof app.owner.email !== 'undefined' && StringUtils.caseInsensitiveMatches(app.owner.email, filters.byPrimaryOwner))
+                ),
+
                 // Apply delay between API emission
                 concatMap(app => Rx
                     .interval(delayPeriod)

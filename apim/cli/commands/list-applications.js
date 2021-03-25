@@ -13,7 +13,13 @@ class ListApplications extends CliCommand {
     constructor() {
         super(
             'list-applications',
-            'List all registered Applications by displaying their ID, name, owner name and owner email, in CSV format'
+            'List all registered Applications by displaying their ID, name, owner name and owner email, in CSV format',
+            {
+                'filter-by-primary-owner': {
+                    describe: "Filter APIs against its primary owner name or address (insensitive regex)",
+                    type: 'string'
+                }
+            }
         );
     }
 
@@ -22,7 +28,9 @@ class ListApplications extends CliCommand {
             .login(this.argv['username'], this.argv['password'])
             .pipe(
                 // List applications
-                flatMap(() => managementApi.listApplications(NO_DELAY_PERIOD)),
+                flatMap(() => managementApi.listApplications({ 
+                    byPrimaryOwner: this.argv['filter-by-primary-owner']
+                }, NO_DELAY_PERIOD)),
 
                 // Format event so that it can be handle by CsvCliCommandReporter
                 map(app => [
