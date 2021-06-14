@@ -4,7 +4,7 @@ const request = require('request-promise');
 const Rx = require('rxjs');
 const {concatMap, distinct, expand, filter, flatMap, map, reduce, take, tap} = require('rxjs/operators');
 
-const DEFAULT_TIMEOUT = 20000;
+const DEFAULT_TIMEOUT = 120000; // in ms
 const HEADER_SEPARATOR = ':';
 const EXPORT_EXCLUDE = {
     GROUPS: 'groups',
