@@ -1,7 +1,7 @@
 const {CliCommand} = require('./lib/cli-command');
 const StringUtils = require('./lib/string-utils');
 const Rx = require('rxjs');
-const {flatMap, map, reduce, switchMap, tap} = require('rxjs/operators');
+const {mergeMap, map, reduce, switchMap, tap} = require('rxjs/operators');
 const util = require('util');
 const readline = require('readline');
 
@@ -52,8 +52,8 @@ class TransferOwnership extends CliCommand {
             .login(this.argv['username'], this.argv['password'])
             // Retrieve owner and APIs
             .pipe(
-                flatMap(_token => this.getOwner(managementApi)),
-                flatMap(owner => this.getApisOrApplications(managementApi, owner))
+                mergeMap(_token => this.getOwner(managementApi)),
+                mergeMap(owner => this.getApisOrApplications(managementApi, owner))
             )
             // Then ask for confirmation for applying changes
             .subscribe(
@@ -105,7 +105,7 @@ class TransferOwnership extends CliCommand {
     applyTransferOwnership(ownershipTransfer, managementApi) {
         Rx.from(ownershipTransfer.ownedElements)
             .pipe(
-                flatMap(element => managementApi.transferOwnership(element.id, this.argv['type'], ownershipTransfer.owner.reference, this.argv['old-owner-role']))
+                mergeMap(element => managementApi.transferOwnership(element.id, this.argv['type'], ownershipTransfer.owner.reference, this.argv['old-owner-role']))
             )
             .subscribe(
                 this.defaultSubscriber(transfer => this.displayInfo(util.format('Ownership transferred to %s', ownershipTransfer.owner.displayName)))

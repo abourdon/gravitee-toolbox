@@ -1,5 +1,5 @@
 const {CliCommand} = require('./lib/cli-command');
-const { count, flatMap } = require('rxjs/operators');
+const { count, mergeMap } = require('rxjs/operators');
 const util = require('util');
 
 const NO_DELAY_PERIOD = 0;
@@ -51,7 +51,7 @@ class CountApis extends CliCommand {
         managementApi
             .login(this.argv['username'], this.argv['password'])
             .pipe(
-                flatMap(_token => {
+                mergeMap(_token => {
                     return this.hasBasicsFiltersOnly() ?
                         managementApi.listApisBasics({
                             byName: this.argv['filter-by-name'],

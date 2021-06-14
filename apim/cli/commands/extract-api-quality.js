@@ -2,7 +2,7 @@ const { CliCommand, CsvCliCommandReporter } = require('./lib/cli-command');
 const ElasticSearch = require('./lib/elasticsearch');
 const { QualityCriterion, convertQualityCriteria } = require('./lib/quality-criteria-converter');
 const Rx = require('rxjs')
-const { filter, flatMap, map, reduce, take } = require('rxjs/operators');
+const { filter, mergeMap, map, reduce, take } = require('rxjs/operators');
 const util = require('util');
 
 const DESCRIPTION_MIN_LENGTH = 100;
@@ -254,7 +254,7 @@ class ExtractApiQuality extends CliCommand {
             : undefined;
 
         const apiIds = managementApi.login(this.argv['username'], this.argv['password']).pipe(
-                flatMap(_token => this.argv['api-id'] !== undefined
+                mergeMap(_token => this.argv['api-id'] !== undefined
                     ? Rx.of(this.argv['api-id'])
                     : managementApi.listApisBasics({}, this.argv['delay-period'], 30000).pipe(
                         map(api => api.id)
@@ -268,14 +268,14 @@ class ExtractApiQuality extends CliCommand {
             this.validateSupportEmailDefined,
             this.evaluateRuntimeCriteria);
         apiIds.pipe(
-            flatMap(apiId => qualityFunctions.pipe(
-                flatMap(qualityFunction => qualityFunction.bind(this)(managementApi, elasticsearch, apiId)),
+            mergeMap(apiId => qualityFunctions.pipe(
+                mergeMap(qualityFunction => qualityFunction.bind(this)(managementApi, elasticsearch, apiId)),
                 reduce((acc, criteria) => acc.concat(criteria), []),
                 map(criteria => criteria.sort((c1, c2) => c1.reference.localeCompare(c2.reference))),
-                flatMap(criteria => managementApi.getApi(apiId).pipe(
+                mergeMap(criteria => managementApi.getApi(apiId).pipe(
                     map(api => Object.assign({api: api, type: this.getApiType(api), criteria: criteria}))
                 )),
-                flatMap(apiQuality => this.updateGraviteeApiQualityRules(managementApi, apiQuality)),
+                mergeMap(apiQuality => this.updateGraviteeApiQualityRules(managementApi, apiQuality)),
                 map(apiQuality => Array
                     .from(apiQuality.criteria)
                     .reduce((acc, criteria) => acc.concat(criteria.complied), [apiQuality.api.id, apiQuality.api.name, apiQuality.type])
@@ -302,7 +302,7 @@ class ExtractApiQuality extends CliCommand {
     evaluateQualityFromDetail(managementApi, elasticsearch, apiId) {
         return managementApi
             .export(apiId).pipe(
-                flatMap(apiDetail => Rx.from(apiDetailsCriteriaEvaluators).pipe(
+                mergeMap(apiDetail => Rx.from(apiDetailsCriteriaEvaluators).pipe(
                         filter(evaluator => evaluator.enabled === undefined || evaluator.enabled(this)),
                         map(evaluator => new QualityCriterion(evaluator.criterion.description, evaluator.criterion.reference, evaluator.evaluate(apiDetail, this))),
                         reduce((acc, criteria) => acc.concat(criteria), [])
@@ -330,8 +330,8 @@ class ExtractApiQuality extends CliCommand {
             this.evaluateErrorsRatio,
             this.evaluateHealthCheckAvailability);
         return this.getApiAvailabilityThreshold(managementApi, apiId).pipe(
-            flatMap(threshold => runtimeQualityFunctions.pipe(
-                flatMap(qualityFunction => qualityFunction.bind(this)(managementApi, elasticsearch, threshold, apiId)),
+            mergeMap(threshold => runtimeQualityFunctions.pipe(
+                mergeMap(qualityFunction => qualityFunction.bind(this)(managementApi, elasticsearch, threshold, apiId)),
                 reduce((acc, criteria) => acc.concat(criteria), [])
             ))
         );
@@ -452,8 +452,8 @@ class ExtractApiQuality extends CliCommand {
     updateGraviteeApiQualityRules(managementApi, apiQuality) {
         if (this.argv['update-quality-rules']) {
             return managementApi.getQualityRules().pipe(
-                flatMap(rules => Rx.from(rules)),
-                flatMap(rule => {
+                mergeMap(rules => Rx.from(rules)),
+                mergeMap(rule => {
                     var relatedCriteria = apiQuality.criteria.filter(criterion => criterion.reference === rule.name);
                     if (relatedCriteria.length > 0) {
                         return Rx.of(Object.assign({
@@ -465,7 +465,7 @@ class ExtractApiQuality extends CliCommand {
                     }
                     return Rx.EMPTY;
                 }),
-                flatMap(update => this.updateGraviteeApiQualityRule(managementApi, update)),
+                mergeMap(update => this.updateGraviteeApiQualityRule(managementApi, update)),
                 take(1)
             )
         }
@@ -474,7 +474,7 @@ class ExtractApiQuality extends CliCommand {
 
     updateGraviteeApiQualityRule(managementApi, updateRule) {
         return managementApi.getQualityRule(updateRule.apiId, updateRule.ruleId).pipe(
-            flatMap(rule => {
+            mergeMap(rule => {
                 var updateExecution;
                 if (rule !== undefined) {
                     updateExecution = managementApi.updateQualityRule(updateRule.apiId, updateRule.ruleId, updateRule.checked);

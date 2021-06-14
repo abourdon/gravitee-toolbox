@@ -1,5 +1,5 @@
 const {CliCommand, CsvCliCommandReporter} = require('./lib/cli-command');
-const {flatMap, map} = require('rxjs/operators');
+const {mergeMap, map} = require('rxjs/operators');
 
 const NO_DELAY_PERIOD = 0;
 
@@ -28,7 +28,7 @@ class ListApplications extends CliCommand {
             .login(this.argv['username'], this.argv['password'])
             .pipe(
                 // List applications
-                flatMap(() => managementApi.listApplications({ 
+                mergeMap(() => managementApi.listApplications({ 
                     byPrimaryOwner: this.argv['filter-by-primary-owner']
                 }, NO_DELAY_PERIOD)),
 

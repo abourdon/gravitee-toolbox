@@ -1,6 +1,6 @@
 const {CliCommand} = require('./lib/cli-command');
 const Rx = require('rxjs');
-const { filter, flatMap, map, reduce } = require('rxjs/operators');
+const { filter, mergeMap, map, reduce } = require('rxjs/operators');
 const util = require('util');
 
 const NO_DELAY_PERIOD = 0;
@@ -59,7 +59,7 @@ class FetchDocumentationPages extends CliCommand {
     definition(managementApi) {
         managementApi.login(this.argv['username'], this.argv['password'])
             .pipe(
-                flatMap(_token => this.argv['api-id'] ?
+                mergeMap(_token => this.argv['api-id'] ?
                     managementApi.getApi(this.argv['api-id']) :
                     managementApi.listApisBasics({
                         byName: this.argv['filter-by-name'],
@@ -67,7 +67,7 @@ class FetchDocumentationPages extends CliCommand {
                         byPrimaryOwner: this.argv['filter-by-primary-owner']
                     }, this.argv['delay-period'])
                 ),
-                flatMap(api => {
+                mergeMap(api => {
                     return managementApi.getDocumentationPages(api.id, {
                         byName: this.argv['filter-by-page-name'],
                         byType: this.argv['filter-by-page-type']
@@ -110,7 +110,7 @@ class FetchDocumentationPages extends CliCommand {
      */
     fetchDocumentationPages(apiPages, managementApi) {
         Rx.from(apiPages).pipe(
-            flatMap(apiPage => managementApi.fetchDocumentationPage(apiPage.api.id, apiPage.page.id).pipe(
+            mergeMap(apiPage => managementApi.fetchDocumentationPage(apiPage.api.id, apiPage.page.id).pipe(
                     map(fetchedPage => apiPage)
             ))
         ).subscribe(this.defaultSubscriber(apiPage => this.displayRaw(

@@ -1,5 +1,5 @@
 const {CliCommand} = require('./lib/cli-command');
-const { count, flatMap } = require('rxjs/operators');
+const { count, mergeMap } = require('rxjs/operators');
 const util = require('util');
 
 const NO_DELAY_PERIOD = 0;
@@ -22,7 +22,7 @@ class CountApplications extends CliCommand {
         managementApi
             .login(this.argv['username'], this.argv['password'])
             .pipe(
-                flatMap(() => managementApi.listApplications(NO_DELAY_PERIOD)),
+                mergeMap(() => managementApi.listApplications(NO_DELAY_PERIOD)),
                 count()
             )
             .subscribe(this.defaultSubscriber(

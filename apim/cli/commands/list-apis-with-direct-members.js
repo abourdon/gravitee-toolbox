@@ -1,6 +1,6 @@
 const {CliCommand} = require('./lib/cli-command');
 const Rx = require('rxjs')
-const {filter, flatMap, map, reduce, tap} = require('rxjs/operators');
+const {filter, mergeMap, map, reduce, tap} = require('rxjs/operators');
 const util = require('util');
 
 const NO_DELAY_PERIOD = 0;
@@ -40,10 +40,10 @@ class ListApisWithDirectMembers extends CliCommand {
         managementApi
             .login(this.argv['username'], this.argv['password'])
             .pipe(
-                flatMap(_token => managementApi.listApisBasics()),
-                flatMap(api => managementApi.getApiDirectMembers(api.id).pipe(
+                mergeMap(_token => managementApi.listApisBasics()),
+                mergeMap(api => managementApi.getApiDirectMembers(api.id).pipe(
                     filter(members => members.length > 1),
-                    flatMap(members => this.splitDeletableAndRemainingMembers(managementApi, api, members))
+                    mergeMap(members => this.splitDeletableAndRemainingMembers(managementApi, api, members))
                 )),
                 tap(apiMembers => this.displayRaw(util.format('[%s, %s, %s <%s>] %s (deletable members: %s, remaining members: %s)',
                     apiMembers.api.id,
@@ -91,7 +91,7 @@ class ListApisWithDirectMembers extends CliCommand {
 
     splitDeletableAndRemainingMembers(managementApi, api, members) {
         return managementApi.getApi(api.id).pipe(
-            flatMap(detail => this.getDeletableAndRemainingMembers(managementApi, detail, members)),
+            mergeMap(detail => this.getDeletableAndRemainingMembers(managementApi, detail, members)),
             map(members => Object.assign({
                 api: api,
                 deletableMembers: members.filter(m => m.deletable),
@@ -103,7 +103,7 @@ class ListApisWithDirectMembers extends CliCommand {
     getDeletableAndRemainingMembers(managementApi, api, members) {
         return (api.groups !== undefined && api.groups.length > 0)
             ? this.getApiGroupsMembers(managementApi, api.groups).pipe(
-                flatMap(groupMembers => Rx.from(members).pipe(
+                mergeMap(groupMembers => Rx.from(members).pipe(
                     filter(member => member.role !== PRIMARY_OWNER_ROLE),
                     map(member => this.setMemberDeletable(member, groupMembers)),
                     reduce((acc, member) => acc.concat(member), [])
@@ -114,7 +114,7 @@ class ListApisWithDirectMembers extends CliCommand {
 
     getApiGroupsMembers(managementApi, groups) {
         return Rx.from(groups).pipe(
-            flatMap(groupId => managementApi.getGroupMembers(groupId)),
+            mergeMap(groupId => managementApi.getGroupMembers(groupId)),
             reduce((acc, members) => acc.concat(members), []),
             map(members => this.cleanDuplicates(members))
         );
@@ -156,8 +156,8 @@ class ListApisWithDirectMembers extends CliCommand {
 
     deleteApisDeletableMembers(managementApi, apisMembers) {
         Rx.from(apisMembers).pipe(
-            flatMap(apiMembers => Rx.from(apiMembers.deletableMembers).pipe(
-                flatMap(member => managementApi.deleteApiDirectMember(apiMembers.api.id, member.id)),
+            mergeMap(apiMembers => Rx.from(apiMembers.deletableMembers).pipe(
+                mergeMap(member => managementApi.deleteApiDirectMember(apiMembers.api.id, member.id)),
                 map(memberId => Object.assign({api: apiMembers.api.name, member: memberId}))
             ))
         )

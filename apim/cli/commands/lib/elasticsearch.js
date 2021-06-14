@@ -1,7 +1,7 @@
 const util = require('util');
-const request = require('request-promise');
+const axios = require('axios');
 const Rx = require('rxjs');
-const { catchError, concatMap, expand, filter, flatMap, map, reduce, take } = require('rxjs/operators')
+const { catchError, concatMap, expand, filter, mergeMap, map, reduce, take } = require('rxjs/operators')
 
 const WILDCARD_INDEX = '-*';
 const DEFAULT_TIMEOUT = 120000; // in ms
@@ -123,12 +123,12 @@ class ElasticSearch {
                         nextRequest.body.search_after = lastItem.sort;
                         return nextRequest;
                     }),
-                    flatMap(request => this._request(request)
+                    mergeMap(request => this._request(request)
                         .pipe(
                             map(response => new ElasticSearchResult(request, response))
                         ))
                 )
-            : Rx.empty();
+            : Rx.EMPTY;
     }
 
     /**
@@ -141,9 +141,6 @@ class ElasticSearch {
         const requestSettings = Object.assign({}, requestDetails);
 
         requestSettings.baseUrl = this.settings.esUrl;
-
-        // Set request and response content type to json and also enable automatic JSON parsing
-        requestSettings.json = true;
 
         if (this.settings.esHeaders !== undefined) {
             if (requestSettings.headers === undefined) {
@@ -158,8 +155,10 @@ class ElasticSearch {
         }
 
         // Trust any SSL/TLS HTTP certificate by default
-        if (!requestSettings.strictSSL) {
-            requestSettings.strictSSL = false;
+        if (!requestSettings.httpsAgent) {
+            requestSettings.httpsAgent = new https.Agent({
+                rejectUnauthorized: false
+            });
         }
 
         // If no timeout is defined then set a default one to DEFAULT_TIMEOUT
@@ -167,7 +166,10 @@ class ElasticSearch {
             requestSettings.timeout = DEFAULT_TIMEOUT;
         }
 
-        return Rx.from(request(requestSettings));
+        // Finally do the request and extract answer payload
+        return Rx.from(axios.request(requestSettings)).pipe(
+            map(answer => answer.data)
+        );
     }
 }
 

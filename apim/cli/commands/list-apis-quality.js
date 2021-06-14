@@ -1,6 +1,6 @@
 const {CliCommand} = require('./lib/cli-command');
 const { convertQualityCriteria } = require('./lib/quality-criteria-converter');
-const { flatMap, map } = require('rxjs/operators');
+const { mergeMap, map } = require('rxjs/operators');
 const util = require('util');
 
 /**
@@ -30,11 +30,11 @@ class ListApisQuality extends CliCommand {
         managementApi
             .login(this.argv['username'], this.argv['password'])
             .pipe(
-                flatMap(_token => managementApi.listApisBasics({
+                mergeMap(_token => managementApi.listApisBasics({
                     byName: this.argv['filter-by-name'],
                     byContextPath: this.argv['filter-by-context-path'],
                 })),
-                flatMap(api => managementApi.getQuality(api.id).pipe(
+                mergeMap(api => managementApi.getQuality(api.id).pipe(
                     map(quality => Object.assign({api: api, quality: quality}))
                 ))
             )

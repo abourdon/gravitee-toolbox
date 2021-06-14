@@ -2,7 +2,7 @@ const {CliCommand} = require('./lib/cli-command');
 const StringUtils = require('./lib/string-utils');
 const ManagementApi = require('./lib/management-api');
 const Rx = require('rxjs');
-const {flatMap, map, reduce, tap} = require('rxjs/operators');
+const {mergeMap, map, reduce, tap} = require('rxjs/operators');
 const util = require('util');
 const readline = require('readline');
 
@@ -106,7 +106,7 @@ class CreateEndpoint extends CliCommand {
         // Select Apis...
             .login(this.argv['username'], this.argv['password'])
             .pipe(
-                flatMap(_token => managementApi.listApisBasics({
+                mergeMap(_token => managementApi.listApisBasics({
                     byName: this.argv['filter-by-name'],
                     byContextPath: this.argv['filter-by-context-path']
                 })),
@@ -152,10 +152,10 @@ class CreateEndpoint extends CliCommand {
             .from(apis)
             .pipe(
                 // Get details about selected APIs
-                flatMap(api => managementApi.export(api.id, Object.values(ManagementApi.EXPORT_EXCLUDE).join())),
+                mergeMap(api => managementApi.export(api.id, Object.values(ManagementApi.EXPORT_EXCLUDE).join())),
 
                 // Conditionally create endpoint for APIs
-                flatMap(api => {
+                mergeMap(api => {
                     if (!api.proxy.groups) {
                         return Rx.EMPTY;
                     }
@@ -188,10 +188,10 @@ class CreateEndpoint extends CliCommand {
                 }),
 
                 // Apply changes
-                flatMap(api => managementApi
+                mergeMap(api => managementApi
                     .import(api, api.id)
                     .pipe(
-                        flatMap(importedApi => managementApi.deploy(importedApi.id)
+                        mergeMap(importedApi => managementApi.deploy(importedApi.id)
                             .pipe(
                                 map(() => api)
                             )

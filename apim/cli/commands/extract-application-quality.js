@@ -3,7 +3,7 @@ const ElasticSearch = require('./lib/elasticsearch');
 const {QualityCriterion, convertQualityCriteria} = require('./lib/quality-criteria-converter');
 const StringUtils = require('./lib/string-utils');
 const Rx = require('rxjs');
-const {filter, flatMap, map, reduce, take, tap} = require('rxjs/operators');
+const {filter, mergeMap, map, reduce, take, tap} = require('rxjs/operators');
 const util = require('util');
 
 const CSV_SEPARATOR = ',';
@@ -88,7 +88,7 @@ class ExtractApplicationQuality extends CliCommand {
             .login(this.argv['username'], this.argv['password'])
             .pipe(
                 // Get Application(s)
-                flatMap(_token => this.argv['filter-by-id'] ?
+                mergeMap(_token => this.argv['filter-by-id'] ?
                     managementApi.getApplication(this.argv['filter-by-id']) :
                     managementApi.listApplications(
                         {
@@ -101,7 +101,7 @@ class ExtractApplicationQuality extends CliCommand {
 
                 // Start Application quality evaluation
                 tap(app => this.displayInfo(util.format('Get quality metrics for Application "%s" (%s)', app.name, app.id))),
-                flatMap(app => this.evaluateCriteria(app, managementApi, elasticsearch)),
+                mergeMap(app => this.evaluateCriteria(app, managementApi, elasticsearch)),
             )
             .subscribe(new ExtractApplicationQualityCSVReporter(this));
     }
@@ -152,10 +152,10 @@ class ExtractApplicationQuality extends CliCommand {
         return Rx
             .of(app)
             .pipe(
-                flatMap(app => Rx
+                mergeMap(app => Rx
                     .from(this.getEnabledCriteria())
                     .pipe(
-                        flatMap(criteria => criteria
+                        mergeMap(criteria => criteria
                             .evaluate(app, managementApi, elasticsearch)
                             .pipe(
                                 map(complied => new QualityCriterion(criteria.description, criteria.reference, complied))

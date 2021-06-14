@@ -1,5 +1,5 @@
 const {CliCommand} = require('./lib/cli-command');
-const {flatMap, toArray, map} = require('rxjs/operators');
+const {mergeMap, toArray, map} = require('rxjs/operators');
 const {throwError} = require('rxjs');
 const util = require('util');
 const fsp = require('fs').promises;
@@ -68,7 +68,7 @@ class ImportApi extends CliCommand {
         managementApi
             .login(this.argv['username'], this.argv['password'])
             .pipe(
-                flatMap(_token =>
+                mergeMap(_token =>
                     Rx.from(fsp.readFile(this.argv['filepath'], this.argv['encoding']))
                         .pipe(
                             map(content => {
@@ -88,7 +88,7 @@ class ImportApi extends CliCommand {
                             })
                         )
                 ),
-                flatMap(context => {
+                mergeMap(context => {
                     if (this.argv['new']) {
                         this.displayInfo("Create new API from import file");
                         return Rx.of(Object.assign({content: context.importedFileContent, id: null}))
@@ -98,7 +98,7 @@ class ImportApi extends CliCommand {
                         .pipe(
                             // Merge all APIs emitted into array
                             toArray(),
-                            flatMap(apis => {
+                            mergeMap(apis => {
                                 // Throw error if more (or less) than one result
                                 if (apis.length !== 1) {
                                     var msg = util.format('%s APIs found, must find a single result. Be more precise in filters.', apis.length);
@@ -113,10 +113,10 @@ class ImportApi extends CliCommand {
                         )
                 }),
                 // Import and deploy if flag is set
-                flatMap(api => (!this.argv['deploy']) ? managementApi.import(api.content, api.id) :
+                mergeMap(api => (!this.argv['deploy']) ? managementApi.import(api.content, api.id) :
                     managementApi.import(api.content, api.id)
                         .pipe(
-                            flatMap(importedApi => managementApi.deploy(importedApi.id))
+                            mergeMap(importedApi => managementApi.deploy(importedApi.id))
                         )
                 )
             ).subscribe(

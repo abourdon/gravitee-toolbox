@@ -1,8 +1,9 @@
 const StringUtils = require('./string-utils');
 const util = require('util');
-const request = require('request-promise');
+const axios = require('axios');
+const https = require('https');
 const Rx = require('rxjs');
-const {concatMap, distinct, expand, filter, flatMap, map, reduce, take, tap} = require('rxjs/operators');
+const {concatMap, distinct, expand, filter, mergeMap, map, reduce, take, tap} = require('rxjs/operators');
 
 const DEFAULT_TIMEOUT = 120000; // in ms
 const HEADER_SEPARATOR = ':';
@@ -126,7 +127,7 @@ class ManagementApi {
         return this._request(requestSettings)
             .pipe(
                 // Emit each API found
-                flatMap(apis => Rx.from(apis)),
+                mergeMap(apis => Rx.from(apis)),
 
                 // Apply filter on id if necessary (strict matches),
                 filter(api => !filters.byId || StringUtils.matches(api.id, filters.byId)),
@@ -181,7 +182,7 @@ class ManagementApi {
             .pipe(
                 // Enrich API definition with the API export to allow deeper filtering
                 // API export result will be available through the details attribute
-                flatMap(api => this.export(api.id)
+                mergeMap(api => this.export(api.id)
                     .pipe(
                         // Add a details attribute that contain API export information
                         map(apiExport => Object.assign(api, {
@@ -191,7 +192,7 @@ class ManagementApi {
                 ),
 
                 // Apply filter on endpoint group attributes if necessary
-                flatMap(api => {
+                mergeMap(api => {
                     if (!filters.byEndpointGroupName) {
                         return Rx.of(api);
                     }
@@ -209,15 +210,15 @@ class ManagementApi {
                 }),
 
                 // Apply filter on endpoint attributes if necessary
-                flatMap(api => {
+                mergeMap(api => {
                     if (!filters.byEndpointName && !filters.byEndpointTarget) {
                         return Rx.of(api);
                     }
                     return Rx
                         .of(api)
                         .pipe(
-                            flatMap(api => api.details.proxy.groups ? Rx.from(api.details.proxy.groups) : Rx.EMPTY),
-                            flatMap(group => group.endpoints ? Rx.from(group.endpoints) : Rx.EMPTY),
+                            mergeMap(api => api.details.proxy.groups ? Rx.from(api.details.proxy.groups) : Rx.EMPTY),
+                            mergeMap(group => group.endpoints ? Rx.from(group.endpoints) : Rx.EMPTY),
                             filter(endpoint => {
                                 const checkEndpointName = !filters.byEndpointName || StringUtils.caseInsensitiveMatches(endpoint.name, filters.byEndpointName);
                                 const checkEndpointTarget = !filters.byEndpointTarget || StringUtils.caseInsensitiveMatches(endpoint.target, filters.byEndpointTarget);
@@ -231,14 +232,14 @@ class ManagementApi {
                 }),
 
                 // Apply filter on plans if necessary
-                flatMap(api => {
+                mergeMap(api => {
                     if (!filters.byPlanName && !filters.byPlanSecurityType) {
                         return Rx.of(api);
                     }
                     return Rx
                         .of(api)
                         .pipe(
-                            flatMap(api => api.details.plans ? Rx.from(api.details.plans) : Rx.EMPTY),
+                            mergeMap(api => api.details.plans ? Rx.from(api.details.plans) : Rx.EMPTY),
                             filter(plan => !filters.byPlanName || StringUtils.caseInsensitiveMatches(plan.name, filters.byPlanName)),
                             filter(plan => !filters.byPlanSecurityType || filters.byPlanSecurityType.filter(filter => filter.toUpperCase() === plan.security).length !== 0),
                             map(() => api),
@@ -249,20 +250,20 @@ class ManagementApi {
                 }),
 
                 // Apply filter on policies if necessary
-                flatMap(api => {
+                mergeMap(api => {
                     if (!filters.byPolicyTechnicalName) {
                         return Rx.of(api);
                     }
                     return _applyFilterOnBothPlansAndDesignPaths(api, (api, paths) => {
                         return paths.pipe(
                             // For each path
-                            flatMap(paths => Object.values(paths)),
+                            mergeMap(paths => Object.values(paths)),
 
                             // And each policy
-                            flatMap(policies => policies),
+                            mergeMap(policies => policies),
 
                             // Get its configuration keys
-                            flatMap(policy => Rx.from(Object.keys(policy))),
+                            mergeMap(policy => Rx.from(Object.keys(policy))),
 
                             // Retrieve only the policy name
                             filter(policyConfigurationKey => !Object.values(POLICY_CONFIGURATION_KEY).includes(policyConfigurationKey)),
@@ -314,7 +315,7 @@ class ManagementApi {
         return this._request(requestSettings)
             .pipe(
                 // Emit each application found
-                flatMap(apps => Rx.from(apps)),
+                mergeMap(apps => Rx.from(apps)),
 
                 // Filter on application id if necessary
                 filter(app => !filters.byId || StringUtils.matches(app.id, filters.byId)),
@@ -407,7 +408,7 @@ class ManagementApi {
             url: util.format('apis/%s/quality-rules', apiId)
         }
         return this._request(requestSettings).pipe(
-            flatMap(rules => {
+            mergeMap(rules => {
                 var found = Rx.of(undefined);
                 rules.forEach(rule => {
                     if (rule.quality_rule === ruleId) {
@@ -502,7 +503,7 @@ class ManagementApi {
         return this._request(requestSettings)
             .pipe(
                 // Emit any plan
-                flatMap(plans => plans),
+                mergeMap(plans => plans),
 
                 // Exclude non desired security types
                 filter(plan => !securityTypesToExclude.includes(plan.security)),
@@ -533,10 +534,10 @@ class ManagementApi {
         };
         return this._request(requestSettings).pipe(
             // Emit each subscription
-            flatMap(subscriptions => subscriptions.data),
+            mergeMap(subscriptions => subscriptions.data),
 
             // Get details about the subscription
-            flatMap(subscription => this.getApiSubscription(apiId, subscription.id)),
+            mergeMap(subscription => this.getApiSubscription(apiId, subscription.id)),
         );
     }
 
@@ -569,7 +570,7 @@ class ManagementApi {
         };
         return this._request(requestSettings).pipe(
             // Emit each key
-            flatMap(keys => keys)
+            mergeMap(keys => keys)
         );
     }
 
@@ -587,10 +588,10 @@ class ManagementApi {
         };
         return this._request(requestSettings).pipe(
             // Emit each subscription
-            flatMap(subscriptions => subscriptions.data),
+            mergeMap(subscriptions => subscriptions.data),
 
             // Get details about the subscription
-            flatMap(subscription => this.getApplicationSubscription(applicationId, subscription.id)),
+            mergeMap(subscription => this.getApplicationSubscription(applicationId, subscription.id)),
         )
     }
 
@@ -628,7 +629,7 @@ class ManagementApi {
         };
         return this._request(requestSettings)
             .pipe(
-                flatMap(pages => Rx.from(pages)),
+                mergeMap(pages => Rx.from(pages)),
                 filter(page => !filters.byName || StringUtils.caseInsensitiveMatches(page.name, filters.byName)),
                 filter(page => !filters.byType || StringUtils.caseInsensitiveMatches(page.type, filters.byType))
             );
@@ -671,7 +672,7 @@ class ManagementApi {
         return this._request(requestSettings).pipe(
             expand(response => {
                 return response.total - (pageSize * currentPage++) <= 0
-                    ? Rx.empty()
+                    ? Rx.EMPTY
                     : this._request({
                         method: 'get',
                         url: util.format('/apis/%s/health/logs', apiId),
@@ -682,7 +683,7 @@ class ManagementApi {
                         }
                     });
             }),
-            flatMap(response => Rx.from(response.logs).pipe(
+            mergeMap(response => Rx.from(response.logs).pipe(
                 tap(healthLog => {
                     healthLog.state = HEALTH_LOG_STATES[healthLog.state];
                     healthLog.gateway = response.metadata[healthLog.gateway].hostname
@@ -854,13 +855,13 @@ class ManagementApi {
         return this._request(requestSettings).pipe(
             expand(response => {
                 return response.page.current == response.page.total_pages
-                    ? Rx.empty()
+                    ? Rx.EMPTY
                     : this._request({
                         method: 'get',
                         url: util.format('users?page=%d&size=%d', response.page.current + 1, pageSize)
                     });
             }),
-            flatMap(response => response.data),
+            mergeMap(response => response.data),
             filter(user => user.source == 'ldap')
         );
     }
@@ -877,7 +878,7 @@ class ManagementApi {
             url: util.format('/users/%s/memberships?type=%s', userId, type)
         };
         return this._request(requestSettings).pipe(
-            flatMap(response => Rx.from(response.memberships).pipe(
+            mergeMap(response => Rx.from(response.memberships).pipe(
                 filter(membership => response.metadata[membership.reference]),
                 map(membership => Object.assign({
                     id: membership.reference,
@@ -1034,7 +1035,7 @@ class ManagementApi {
             .pipe(
                 expand(recursiveRequest),
                 filter(pagedResult => pagedResult.response),
-                flatMap(resultsToEmit)
+                mergeMap(resultsToEmit)
             );
     }
 
@@ -1048,10 +1049,7 @@ class ManagementApi {
         const requestSettings = Object.assign({}, requestDetails);
 
         // Set request to access to the Management API
-        requestSettings.baseUrl = this.settings.apimUrl;
-
-        // Set request and response content type to json and also enable automatic JSON parsing
-        requestSettings.json = true;
+        requestSettings.baseURL = this.settings.apimUrl;
 
         // Add optional headers needed to access to the Management API
         // To do so, recreate headers by first using one in Settings then second by overriding with those given in the current requestDetails
@@ -1065,8 +1063,10 @@ class ManagementApi {
         }
 
         // Trust any SSL/TLS HTTP certificate by default
-        if (!requestSettings.strictSSL) {
-            requestSettings.strictSSL = false;
+        if (!requestSettings.httpsAgent) {
+            requestSettings.httpsAgent = new https.Agent({
+                rejectUnauthorized: false
+            });
         }
 
         // If no timeout is defined then set a default one to DEFAULT_TIMEOUT
@@ -1074,7 +1074,10 @@ class ManagementApi {
             requestSettings.timeout = DEFAULT_TIMEOUT;
         }
 
-        return Rx.from(request(requestSettings));
+        // Finally do the request and extract answer payload
+        return Rx.from(axios.request(requestSettings)).pipe(
+            map(answer => answer.data)
+        );
     }
 }
 

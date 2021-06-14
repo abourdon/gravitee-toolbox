@@ -1,7 +1,7 @@
 const {CliCommand, CsvCliCommandReporter} = require('./lib/cli-command');
 const StringUtils = require('./lib/string-utils');
 const Rx = require('rxjs');
-const {filter, flatMap, map, tap} = require('rxjs/operators');
+const {filter, mergeMap, map, tap} = require('rxjs/operators');
 
 const DEFAULT_DELAY_PERIOD = 50;
 
@@ -50,7 +50,7 @@ class ListHealthLogs extends CliCommand {
     definition(managementApi) {
         managementApi.login(this.argv['username'], this.argv['password'])
             .pipe(
-                flatMap(_token => this.argv['api-id'] ?
+                mergeMap(_token => this.argv['api-id'] ?
                     managementApi.getApi(this.argv['api-id']) :
                     managementApi.listApisBasics({
                         byName: this.argv['filter-by-name'],
@@ -59,7 +59,7 @@ class ListHealthLogs extends CliCommand {
                     })
                 ),
 
-                flatMap(api => managementApi.getApiHealthLogs(api.id, this.argv['transition-only'], this.argv['request-page-size']).pipe(
+                mergeMap(api => managementApi.getApiHealthLogs(api.id, this.argv['transition-only'], this.argv['request-page-size']).pipe(
                     map(healthLog => Object.assign(healthLog, {api: api}))
                 )),
 

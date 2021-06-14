@@ -1,6 +1,6 @@
 const {CliCommand, CliCommandPrerequisites, CliCommandReporter} = require('./lib/cli-command');
 const {PLAN_STATUS, PLAN_SECURITY_TYPE} = require('./lib/management-api');
-const {flatMap, map, merge} = require('rxjs/operators');
+const {mergeMap, map, merge} = require('rxjs/operators');
 const util = require('util');
 const Rx = require('rxjs');
 
@@ -101,7 +101,7 @@ class Subscribe extends CliCommand {
             .login(this.argv['username'], this.argv['password'])
             .pipe(
                 // List APIs according to filters
-                flatMap(_token => managementApi.listApisBasics
+                mergeMap(_token => managementApi.listApisBasics
                     (
                         {
                             byId: this.argv['filter-apis-by-id'],
@@ -113,7 +113,7 @@ class Subscribe extends CliCommand {
                 ),
 
                 // Enrich APIs with their associated Plans according to filters in order to easily manipulate it further (see AskForApprovalReporter#complete())
-                flatMap(api => managementApi.getApiPlans(api.id, [PLAN_STATUS.PUBLISHED], [PLAN_SECURITY_TYPE.KEYLESS], {byName: this.argv['filter-plans-by-name']})
+                mergeMap(api => managementApi.getApiPlans(api.id, [PLAN_STATUS.PUBLISHED], [PLAN_SECURITY_TYPE.KEYLESS], {byName: this.argv['filter-plans-by-name']})
                     .pipe(
                         map(plan => {
                             return {
@@ -132,7 +132,7 @@ class Subscribe extends CliCommand {
             .login(this.argv['username'], this.argv['password'])
             .pipe(
                 // List Applications according to filters
-                flatMap(_token => managementApi.listApplications(
+                mergeMap(_token => managementApi.listApplications(
                     {
                         byId: this.argv['filter-applications-by-id'],
                         byName: this.argv['filter-applications-by-name']
@@ -228,7 +228,7 @@ class AskForApprovalReporter extends CliCommandReporter {
                 .subscribe(subscriptionToProcess.application.id, subscriptionToProcess.plan.id)
                 .pipe(
                     // ... and directly validate subscription if desired
-                    flatMap(subscription => this.cliCommand.argv['auto-validate-subscriptions'] ?
+                    mergeMap(subscription => this.cliCommand.argv['auto-validate-subscriptions'] ?
                         this.cliCommand.managementApi.validateSubscription(subscriptionToProcess.api.id, subscription.id) :
                         Rx.of(subscription)
                     )

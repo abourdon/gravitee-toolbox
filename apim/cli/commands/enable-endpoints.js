@@ -1,7 +1,7 @@
 const {CliCommand} = require('./lib/cli-command');
 const StringUtils = require('./lib/string-utils');
 const Rx = require('rxjs');
-const {flatMap, map, reduce} = require('rxjs/operators');
+const {mergeMap, map, reduce} = require('rxjs/operators');
 const util = require('util');
 const readline = require('readline');
 
@@ -68,7 +68,7 @@ class EnableEndpoints extends CliCommand {
 
             .pipe(
                 // Filter APIs according to given filters
-                flatMap(_token => managementApi.listApisDetails({
+                mergeMap(_token => managementApi.listApisDetails({
                     byName: this.argv['filter-by-name'],
                     byContextPath: this.argv['filter-by-context-path'],
                     byEndpointGroupName: this.argv['filter-by-endpoint-group-name'],
@@ -77,7 +77,7 @@ class EnableEndpoints extends CliCommand {
                 })),
 
                 // Retrieve matching endpoint groups
-                flatMap(api => {
+                mergeMap(api => {
                     if (!api.details.proxy.groups) {
                         return Rx.EMPTY;
                     }
@@ -95,7 +95,7 @@ class EnableEndpoints extends CliCommand {
                 }),
 
                 // Retrieve matching endpoints
-                flatMap(apiAndFilteredEndpointGroup => {
+                mergeMap(apiAndFilteredEndpointGroup => {
                     if (!apiAndFilteredEndpointGroup.filteredEndpointGroup.endpoints) {
                         return Rx.EMPTY;
                     }
@@ -167,10 +167,10 @@ class EnableEndpoints extends CliCommand {
                 }),
 
                 // Finally import API with new endpoint definition (without deploy it)
-                flatMap(apiAndFilteredEndpoint => managementApi
+                mergeMap(apiAndFilteredEndpoint => managementApi
                     .import(apiAndFilteredEndpoint.api.details, apiAndFilteredEndpoint.api.id)
                     .pipe(
-                        flatMap(importedApi => managementApi.deploy(importedApi.id)
+                        mergeMap(importedApi => managementApi.deploy(importedApi.id)
                             .pipe(
                                 map(() => apiAndFilteredEndpoint)
                             )

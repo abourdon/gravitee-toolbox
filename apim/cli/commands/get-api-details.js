@@ -1,6 +1,6 @@
 const {CliCommand} = require('./lib/cli-command');
 const {PLAN_STATUS, SUBSCRIPTION_STATUS} = require('./lib/management-api');
-const { flatMap, map, reduce, tap } = require('rxjs/operators');
+const { mergeMap, map, reduce, tap } = require('rxjs/operators');
 const Rx = require('rxjs');
 const util = require('util');
 
@@ -41,11 +41,11 @@ class ApiDetails extends CliCommand {
 
     definition(managementApi) {
         return managementApi.login(this.argv['username'], this.argv['password']).pipe(
-                flatMap(_token => managementApi.getApi(this.argv['api-id'])),
+                mergeMap(_token => managementApi.getApi(this.argv['api-id'])),
                 map(api => Object.assign({api: api})),
-                flatMap(details => this.enrichEndpointGroups(details.api.proxy.groups, details)),
-                flatMap(details => this.enrichApiPlans(managementApi, this.argv['api-id'], details)),
-                flatMap(details => this.enrichApiSubscriptions(managementApi, this.argv['api-id'], details))
+                mergeMap(details => this.enrichEndpointGroups(details.api.proxy.groups, details)),
+                mergeMap(details => this.enrichApiPlans(managementApi, this.argv['api-id'], details)),
+                mergeMap(details => this.enrichApiSubscriptions(managementApi, this.argv['api-id'], details))
             )
             .subscribe(this.defaultSubscriber(
                 details => this.displayRaw(util.format('[%s, %s, %s <%s>] %s\nPlans:%s\nSubscriptions:%s\nEndpoints:%s',

@@ -3,7 +3,7 @@ const ElasticSearch = require('./lib/elasticsearch');
 const {PLAN_SECURITY_TYPE, SUBSCRIPTION_STATUS} = require('./lib/management-api');
 const StringUtils = require('./lib/string-utils');
 const Rx = require('rxjs');
-const {filter, flatMap, map, reduce} = require('rxjs/operators');
+const {filter, mergeMap, map, reduce} = require('rxjs/operators');
 const util = require('util');
 
 const DEFAULT_DELAY_PERIOD = 50;
@@ -91,9 +91,9 @@ class ListSubscriptions extends CliCommand {
             ? this.getSubscriptionsNumberOfRequests()
             : Rx.of({}))
             .pipe(
-                flatMap(subscriptionsNumberOfRequests => this.getApis(managementApi).pipe(
+                mergeMap(subscriptionsNumberOfRequests => this.getApis(managementApi).pipe(
                     // Get subscriptions and enrich them with the current API
-                    flatMap(api => managementApi.getApiSubscriptions(api.id, this.argv['filter-by-subscription-status']).pipe(
+                    mergeMap(api => managementApi.getApiSubscriptions(api.id, this.argv['filter-by-subscription-status']).pipe(
                         map(subscription => Object.assign(subscription, {api: api}))
                     )),
 
@@ -110,7 +110,7 @@ class ListSubscriptions extends CliCommand {
                     filter(subscription => !this.argv['filter-by-subscription-status'] || this.argv['filter-by-subscription-status'].includes(subscription.status)),
 
                     // Enrich with API key and filter them if necessary
-                    flatMap(subscription => {
+                    mergeMap(subscription => {
                         if (PLAN_SECURITY_TYPE.API_KEY !== subscription.plan.security) {
                             return Rx.of(subscription);
                         }
@@ -155,7 +155,7 @@ class ListSubscriptions extends CliCommand {
 
     getApis(managementApi) {
         return managementApi.login(this.argv['username'], this.argv['password']).pipe(
-            flatMap(_token => this.argv['api-id'] !== undefined
+            mergeMap(_token => this.argv['api-id'] !== undefined
                 ? managementApi.getApi(this.argv['api-id'])
                 : managementApi.listApisBasics({
                     byName: this.argv['filter-by-name'],
@@ -170,8 +170,8 @@ class ListSubscriptions extends CliCommand {
 
     getApiSubscriptions(managementApi, api) {
         return managementApi.getApiPlans(api.id).pipe(
-            flatMap(plans => managementApi.getApiSubscriptions(api.id, this.argv['subscription-status'], SUBSCRIPTION_PAGE_SIZE).pipe(
-                flatMap(subscriptions => this.extractApiSubscriptions(api, plans, subscriptions))
+            mergeMap(plans => managementApi.getApiSubscriptions(api.id, this.argv['subscription-status'], SUBSCRIPTION_PAGE_SIZE).pipe(
+                mergeMap(subscriptions => this.extractApiSubscriptions(api, plans, subscriptions))
             ))
         );
     }
@@ -241,8 +241,8 @@ class ListSubscriptions extends CliCommand {
             new ElasticSearch.Search(this.argv['elasticsearch-index'], [], util.format("now-%s", this.argv['runtime-duration'])),
             aggregation
         ).pipe(
-            flatMap(esResult => Rx.from(esResult.aggregations.RequestsByApi.buckets).pipe(
-                flatMap(apiResult => Rx.from(apiResult.SecurityTypeFilter.RequestsBySubscription.buckets).pipe(
+            mergeMap(esResult => Rx.from(esResult.aggregations.RequestsByApi.buckets).pipe(
+                mergeMap(apiResult => Rx.from(apiResult.SecurityTypeFilter.RequestsBySubscription.buckets).pipe(
                     map(subscriptionResult => Object.assign({
                         "api": apiResult.key,
                         "subscription": subscriptionResult.key,

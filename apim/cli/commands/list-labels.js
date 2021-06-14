@@ -1,5 +1,5 @@
 const {CliCommand, CsvCliCommandReporter} = require('./lib/cli-command');
-const {filter, flatMap, groupBy, map, toArray} = require('rxjs/operators');
+const {filter, mergeMap, groupBy, map, toArray} = require('rxjs/operators');
 const Rx = require('rxjs');
 
 /**
@@ -20,8 +20,8 @@ class ListLabels extends CliCommand {
         managementApi
             .login(this.argv['username'], this.argv['password'])
             .pipe(
-                flatMap(_token => managementApi.listApisBasics()),
-                flatMap(api => {
+                mergeMap(_token => managementApi.listApisBasics()),
+                mergeMap(api => {
                     if (api.labels) {
                         return Rx.from(api.labels.map(label => [
                             label,

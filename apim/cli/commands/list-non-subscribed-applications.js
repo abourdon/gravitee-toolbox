@@ -1,5 +1,5 @@
 const {CliCommand, CsvCliCommandReporter} = require('./lib/cli-command');
-const {count, filter, flatMap, map} = require('rxjs/operators');
+const {count, filter, mergeMap, map} = require('rxjs/operators');
 const {SUBSCRIPTION_STATUS} = require('./lib/management-api');
 
 const NO_DELAY_PERIOD = 0;
@@ -23,10 +23,10 @@ class ListNonSubscribedApplications extends CliCommand {
             .login(this.argv['username'], this.argv['password'])
             .pipe(
                 // List applications
-                flatMap(_token => managementApi.listApplications(NO_DELAY_PERIOD)),
+                mergeMap(_token => managementApi.listApplications(NO_DELAY_PERIOD)),
 
                 // Only keep those without subscription
-                flatMap(application => managementApi.getApplicationSubscriptions(application.id, [SUBSCRIPTION_STATUS.ACCEPTED, SUBSCRIPTION_STATUS.PENDING, SUBSCRIPTION_STATUS.PAUSED]).pipe(
+                mergeMap(application => managementApi.getApplicationSubscriptions(application.id, [SUBSCRIPTION_STATUS.ACCEPTED, SUBSCRIPTION_STATUS.PENDING, SUBSCRIPTION_STATUS.PAUSED]).pipe(
                     count(),
                     filter(count => count === 0),
                     map(count => application)

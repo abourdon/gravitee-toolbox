@@ -1,6 +1,6 @@
 const {CliCommand, CsvCliCommandReporter} = require('./lib/cli-command');
 const Rx = require('rxjs')
-const { filter, flatMap, map } = require('rxjs/operators');
+const { filter, mergeMap, map } = require('rxjs/operators');
 const util = require('util');
 
 const API_STATE_STARTED = 'started';
@@ -41,7 +41,7 @@ class ListActivatedLogsApis extends CliCommand {
         managementApi
             .login(this.argv['username'], this.argv['password'])
             .pipe(
-                flatMap(_token => managementApi.listApisDetails({
+                mergeMap(_token => managementApi.listApisDetails({
                     byName: this.argv['filter-by-name'],
                     byContextPath: this.argv['filter-by-context-path'],
                 })),
@@ -49,14 +49,14 @@ class ListActivatedLogsApis extends CliCommand {
                 filter(api => api.proxy.logging != undefined &&
                               api.proxy.logging.mode != LOGGING_MODE_DISABLED &&
                               this.isLoggingConditionActive(api.proxy.logging.condition)),
-                flatMap(api => managementApi.getApi(api.id)),
-                flatMap(api => managementApi.getApiState(api.id).pipe(
+                mergeMap(api => managementApi.getApi(api.id)),
+                mergeMap(api => managementApi.getApiState(api.id).pipe(
                     map(state => {
                         api.is_synchronized = state.is_synchronized;
                         return api;
                     })
                 )),
-                flatMap(api => this.disableLogs(managementApi, api)),
+                mergeMap(api => this.disableLogs(managementApi, api)),
                 map(api => [
                     api.id,
                     api.name,
@@ -97,7 +97,7 @@ class ListActivatedLogsApis extends CliCommand {
         return managementApi
             .update(api, api.id)
             .pipe(
-                flatMap(updatedApi => managementApi.deploy(updatedApi.id))
+                mergeMap(updatedApi => managementApi.deploy(updatedApi.id))
             );
     }
 

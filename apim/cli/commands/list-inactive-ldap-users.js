@@ -1,7 +1,7 @@
 const {CliCommand} = require('./lib/cli-command');
 const LdapClient = require('./lib/ldap-client');
 const Rx = require('rxjs');
-const { count, filter, flatMap, map, reduce } = require('rxjs/operators');
+const { count, filter, mergeMap, map, reduce } = require('rxjs/operators');
 const assert = require('assert').strict;
 const util = require('util');
 
@@ -46,11 +46,11 @@ class ListInactiveLdapUsers extends CliCommand {
         managementApi
             .login(this.argv['username'], this.argv['password'])
             .pipe(
-                flatMap(_token => managementApi.listLdapUsers()),
-                flatMap(user => this.filterInactiveLdapUser(ldapClient, user)),
+                mergeMap(_token => managementApi.listLdapUsers()),
+                mergeMap(user => this.filterInactiveLdapUser(ldapClient, user)),
                 map(user => Object.assign({id: user.id, email: user.email, name: user.displayName})),
-                flatMap(user => this.fillUserWithApisInfo(managementApi, user)),
-                flatMap(user => this.fillUserWithApplicationsInfo(managementApi, user)),
+                mergeMap(user => this.fillUserWithApisInfo(managementApi, user)),
+                mergeMap(user => this.fillUserWithApplicationsInfo(managementApi, user)),
                 reduce((acc, user) => util.format('%s\n%s (Email: %s, id: %s)\n\tAPIs:%s\n\tApplications:%s',
                     acc, user.name, user.email, user.id, user.apis, user.applications), '')
             )
@@ -119,8 +119,8 @@ class ListInactiveLdapUsers extends CliCommand {
 
     fillUserMembershipInfo(managementApi, user, elementType, getElementDetailFn, fillUserFn) {
         return managementApi.listUserMemberships(user.id, elementType).pipe(
-            flatMap(elements => Rx.from(elements).pipe(
-                flatMap(element => getElementDetailFn(element.id).pipe(
+            mergeMap(elements => Rx.from(elements).pipe(
+                mergeMap(element => getElementDetailFn(element.id).pipe(
                     filter(element => element.owner.id == user.id)
                 )),
                 map(element => util.format('\t\t- %s (%s)', element.name, element.id)),

@@ -1,6 +1,6 @@
 const {CliCommand, CsvCliCommandReporter} = require('./lib/cli-command');
 const ManagementApi = require('./lib/management-api');
-const {flatMap, groupBy, map} = require('rxjs/operators');
+const {mergeMap, groupBy, map} = require('rxjs/operators');
 
 /**
  * List user connections during a given timeslot, in CSV format.
@@ -49,7 +49,7 @@ class ListUserConnections extends CliCommand {
             .login(this.argv['username'], this.argv['password'])
             .pipe(
                 // List audits
-                flatMap(_token => {
+                mergeMap(_token => {
                     return managementApi.listAudits(
                         ManagementApi.EVENT_TYPE.USER_CONNECTED,
                         fromDate.getTime(),
@@ -64,7 +64,7 @@ class ListUserConnections extends CliCommand {
                 groupBy(event => event.properties.USER),
 
                 // Retrieve details for each user
-                flatMap(userEvent => managementApi.getUser(userEvent.key)),
+                mergeMap(userEvent => managementApi.getUser(userEvent.key)),
 
                 // Finally order user information to be taken into account by the CsvCliCommandReporter
                 map(user => [user.id, user.displayName, user.email ? user.email : 'N/A', user.source])

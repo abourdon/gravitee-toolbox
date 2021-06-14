@@ -1,6 +1,6 @@
 const {CliCommand} = require('./lib/cli-command');
 const Rx = require('rxjs');
-const {filter, flatMap, map, reduce, tap} = require('rxjs/operators');
+const {filter, mergeMap, map, reduce, tap} = require('rxjs/operators');
 const util = require('util');
 
 const LOGGING_CONDITION_KEY = 'condition';
@@ -62,13 +62,13 @@ class EnableLogs extends CliCommand {
             .login(this.argv['username'], this.argv['password'])
             .pipe(
                 // Retrieve API details that match user predicate
-                flatMap(_token => managementApi.listApisDetails({
+                mergeMap(_token => managementApi.listApisDetails({
                     byName: this.argv['filter-by-name'],
                     byContextPath: this.argv['filter-by-context-path'],
                 })),
 
                 // Only keep APIs without ongoing changes
-                flatMap(api =>
+                mergeMap(api =>
                     managementApi.getApiState(api.id)
                         .pipe(
                             tap(state => api.is_synchronized = state.is_synchronized),
@@ -113,9 +113,9 @@ class EnableLogs extends CliCommand {
                 tap(api => this.setLoggingConfiguration(api.details)),
 
                 // Finally update APIs
-                flatMap(api => managementApi.import(api.details, api.id)
+                mergeMap(api => managementApi.import(api.details, api.id)
                     .pipe(
-                        flatMap(api => managementApi.deploy(api.id))
+                        mergeMap(api => managementApi.deploy(api.id))
                     )
                 )
             )

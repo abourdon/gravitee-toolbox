@@ -41,7 +41,7 @@ $ node <script>.js -h
 
 ```js
 const {CliCommand, CsvCliCommandReporter} = require('./lib/cli-command');
-const {flatMap, map} = require('rxjs/operators');
+const {mergeMap, map} = require('rxjs/operators');
 
 const NO_DELAY_PERIOD = 0;
 
@@ -97,7 +97,7 @@ class ListApis extends CliCommand {
             .login(this.argv['username'], this.argv['password'])
             .pipe(
                 // List APIs according to filters
-                flatMap(_token => {
+                mergeMap(_token => {
                     return this.hasBasicsFiltersOnly() ?
                         managementApi.listApisBasics({
                             byName: this.argv['filter-by-name'],
