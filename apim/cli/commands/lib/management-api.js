@@ -1069,7 +1069,7 @@ class ManagementApi {
             requestSettings.strictSSL = false;
         }
 
-        // If no timeout is defined then set a default one to 10s
+        // If no timeout is defined then set a default one to DEFAULT_TIMEOUT
         if (!requestSettings.timeout) {
             requestSettings.timeout = DEFAULT_TIMEOUT;
         }

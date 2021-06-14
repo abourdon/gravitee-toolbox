@@ -4,7 +4,7 @@ const Rx = require('rxjs');
 const { catchError, concatMap, expand, filter, flatMap, map, reduce, take } = require('rxjs/operators')
 
 const WILDCARD_INDEX = '-*';
-const DEFAULT_TIMEOUT = 10000;
+const DEFAULT_TIMEOUT = 120000; // in ms
 
 /**
  * Elasticsearch client instance.
@@ -162,7 +162,7 @@ class ElasticSearch {
             requestSettings.strictSSL = false;
         }
 
-        // If no timeout is defined then set a default one to 10s
+        // If no timeout is defined then set a default one to DEFAULT_TIMEOUT
         if (!requestSettings.timeout) {
             requestSettings.timeout = DEFAULT_TIMEOUT;
         }
