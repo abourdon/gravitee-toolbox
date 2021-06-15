@@ -1,11 +1,14 @@
 const StringUtils = require('./string-utils');
 const util = require('util');
-const axios = require('axios');
+const gaxios = require('gaxios');
 const https = require('https');
 const Rx = require('rxjs');
 const {concatMap, distinct, expand, filter, mergeMap, map, reduce, take, tap} = require('rxjs/operators');
+const { triggerAsyncId } = require('async_hooks');
 
 const DEFAULT_TIMEOUT = 120000; // in ms
+const DEFAULT_RETRY_DELAY = 5000; // in ms
+const DEFAULT_RETRY_ATTEMPT = 3;
 const HEADER_SEPARATOR = ':';
 const EXPORT_EXCLUDE = {
     GROUPS: 'groups',
@@ -76,12 +79,12 @@ class ManagementApi {
      * @returns {Obervable}
      */
     login(username, password) {
+        const credentials = Buffer.from(util.format('%s:%s', username, password)).toString('base64')
         return this._request({
-            method: 'post',
-            url: 'user/login',
-            auth: {
-                username: username,
-                password: password
+            method: 'POST',
+            url: '/user/login',
+            headers: {
+                Authorization: 'Basic ' + credentials
             }
         }).pipe(
             // Add the login bearer token to the current Apim.Settings
@@ -97,8 +100,8 @@ class ManagementApi {
      */
     logout() {
         return this._request({
-            method: 'post',
-            url: 'user/logout'
+            method: 'POST',
+            url: '/user/logout'
         }).pipe(
             // Remove the login bearer token
             tap(_answer => delete this.settings.bearer)
@@ -120,8 +123,8 @@ class ManagementApi {
      */
     listApisBasics(filters = {}, delayPeriod = 50, timeout = DEFAULT_TIMEOUT) {
         const requestSettings = {
-            method: 'get',
-            url: 'apis',
+            method: 'GET',
+            url: '/apis',
             timeout: timeout
         };
         return this._request(requestSettings)
@@ -308,8 +311,8 @@ class ManagementApi {
      */
     listApplications(filters = {}, delayPeriod = 50, timeout = DEFAULT_TIMEOUT) {
         const requestSettings = {
-            method: 'get',
-            url: 'applications',
+            method: 'GET',
+            url: '/applications',
             timeout: timeout
         };
         return this._request(requestSettings)
@@ -348,8 +351,8 @@ class ManagementApi {
      */
     getApi(apiId) {
         const requestSettings = {
-            method: 'get',
-            url: util.format('apis/%s', apiId)
+            method: 'GET',
+            url: util.format('/apis/%s', apiId),
         };
         return this._request(requestSettings);
     }
@@ -362,8 +365,8 @@ class ManagementApi {
      */
     getApiState(apiId) {
         const requestSettings = {
-            method: 'get',
-            url: util.format('apis/%s/state', apiId)
+            method: 'GET',
+            url: util.format('/apis/%s/state', apiId)
         };
         return this._request(requestSettings);
     }
@@ -376,8 +379,8 @@ class ManagementApi {
      */
     getQuality(apiId) {
         const requestSettings = {
-            method: 'get',
-            url: util.format('apis/%s/quality', apiId)
+            method: 'GET',
+            url: util.format('/apis/%s/quality', apiId)
         };
         return this._request(requestSettings);
     }
@@ -389,8 +392,8 @@ class ManagementApi {
      */
     getQualityRules() {
         const requestSettings = {
-            method: 'get',
-            url: 'configuration/quality-rules'
+            method: 'GET',
+            url: '/configuration/quality-rules'
         };
         return this._request(requestSettings);
     }
@@ -404,8 +407,8 @@ class ManagementApi {
      */
     getQualityRule(apiId, ruleId) {
         const requestSettings = {
-            method: 'get',
-            url: util.format('apis/%s/quality-rules', apiId)
+            method: 'GET',
+            url: util.format('/apis/%s/quality-rules', apiId)
         }
         return this._request(requestSettings).pipe(
             mergeMap(rules => {
@@ -430,9 +433,9 @@ class ManagementApi {
      */
     createQualityRule(apiId, ruleId, checked) {
         const requestSettings = {
-            method: 'post',
-            url: util.format('apis/%s/quality-rules', apiId),
-            body: {"api": apiId, "quality_rule": ruleId, "checked": checked}
+            method: 'POST',
+            url: util.format('/apis/%s/quality-rules', apiId),
+            data: {"api": apiId, "quality_rule": ruleId, "checked": checked}
         };
         return this._request(requestSettings);
     }
@@ -447,9 +450,10 @@ class ManagementApi {
      */
     updateQualityRule(apiId, ruleId, checked) {
         const requestSettings = {
-            method: 'put',
-            url: util.format('apis/%s/quality-rules/%s', apiId, ruleId),
-            body: {"checked": checked}
+            method: 'PUT',
+            url: util.format('/apis/%s/quality-rules/%s', apiId, ruleId),
+            data: {"checked": checked},
+            retry: true
         };
         return this._request(requestSettings);
     }
@@ -462,8 +466,8 @@ class ManagementApi {
      */
     getApiMetadata(apiId) {
         const requestSettings = {
-            method: 'get',
-            url: util.format('apis/%s/metadata', apiId)
+            method: 'GET',
+            url: util.format('/apis/%s/metadata', apiId)
         };
         return this._request(requestSettings);
     }
@@ -477,7 +481,7 @@ class ManagementApi {
      */
     getApiPlan(apiId, planId) {
         const requestSettings = {
-            method: 'get',
+            method: 'GET',
             url: util.format('/apis/%s/plans/%s')
         };
         return this._request(requestSettings);
@@ -494,9 +498,9 @@ class ManagementApi {
      */
     getApiPlans(apiId, planStatusToInclude = Object.values(PLAN_STATUS), securityTypesToExclude = [], additionalFilters = {}) {
         const requestSettings = {
-            method: 'get',
+            method: 'GET',
             url: util.format('/apis/%s/plans', apiId),
-            qs: {
+            params: {
                 status: planStatusToInclude.join(',')
             }
         };
@@ -525,9 +529,9 @@ class ManagementApi {
      */
     getApiSubscriptions(apiId, subscriptionStatus = [SUBSCRIPTION_STATUS.ACCEPTED, SUBSCRIPTION_STATUS.PENDING, SUBSCRIPTION_STATUS.PAUSED], size = 100) {
         const requestSettings = {
-            method: 'get',
+            method: 'GET',
             url: util.format('/apis/%s/subscriptions', apiId),
-            qs: {
+            params: {
                 size: size,
                 status: subscriptionStatus.join(',')
             }
@@ -550,7 +554,7 @@ class ManagementApi {
      */
     getApiSubscription(apiId, subscriptionId) {
         const requestSettings = {
-            method: 'get',
+            method: 'GET',
             url: util.format('/apis/%s/subscriptions/%s', apiId, subscriptionId)
         };
         return this._request(requestSettings);
@@ -565,7 +569,7 @@ class ManagementApi {
      */
     getApiSubscriptionKeys(apiId, subscriptionId) {
         const requestSettings = {
-            method: 'get',
+            method: 'GET',
             url: util.format('/apis/%s/subscriptions/%s/keys', apiId, subscriptionId)
         };
         return this._request(requestSettings).pipe(
@@ -583,7 +587,7 @@ class ManagementApi {
     getApplicationSubscriptions(applicationId, subscriptionStatus = ['ACCEPTED', 'PENDING', 'PAUSED'], size = 10) {
         var status = subscriptionStatus.reduce((acc, s) => acc + (acc.length > 0 ? "," : "") + s, "");
         const requestSettings = {
-            method: 'get',
+            method: 'GET',
             url: util.format('/applications/%s/subscriptions?size=%d&status=%s', applicationId, size, status)
         };
         return this._request(requestSettings).pipe(
@@ -604,7 +608,7 @@ class ManagementApi {
      */
     getApplicationSubscription(applicationId, subscriptionId) {
         const requestSettings = {
-            method: 'get',
+            method: 'GET',
             url: util.format('/applications/%s/subscriptions/%s', applicationId, subscriptionId)
         };
         return this._request(requestSettings);
@@ -624,8 +628,8 @@ class ManagementApi {
      */
     getDocumentationPages(apiId, filters = {}) {
         const requestSettings = {
-            method: 'get',
-            url: util.format('apis/%s/pages', apiId)
+            method: 'GET',
+            url: util.format('/apis/%s/pages', apiId)
         };
         return this._request(requestSettings)
             .pipe(
@@ -644,7 +648,7 @@ class ManagementApi {
      */
     fetchDocumentationPage(apiId, pageId) {
         const requestSettings = {
-            method: 'post',
+            method: 'POST',
             url: util.format('/apis/%s/pages/%s/_fetch', apiId, pageId)
         };
         return this._request(requestSettings);
@@ -661,9 +665,9 @@ class ManagementApi {
     getApiHealthLogs(apiId, transition = true, pageSize = 10) {
         var currentPage = 1;
         const requestSettings = {
-            method: 'get',
+            method: 'GET',
             url: util.format('/apis/%s/health/logs', apiId),
-            qs: {
+            params: {
                 page: currentPage,
                 size: pageSize,
                 transition: transition
@@ -674,9 +678,9 @@ class ManagementApi {
                 return response.total - (pageSize * currentPage++) <= 0
                     ? Rx.EMPTY
                     : this._request({
-                        method: 'get',
+                        method: 'GET',
                         url: util.format('/apis/%s/health/logs', apiId),
-                        qs: {
+                        params: {
                             page: currentPage,
                             size: pageSize,
                             transition: transition
@@ -700,11 +704,11 @@ class ManagementApi {
      */
     export(apiId, exclude) {
         const requestSettings = {
-            method: 'get',
-            url: util.format('apis/%s/export', apiId)
+            method: 'GET',
+            url: util.format('/apis/%s/export', apiId)
         };
         if (exclude) {
-            requestSettings.qs = {
+            requestSettings.params = {
                 exclude: exclude
             }
         }
@@ -726,10 +730,10 @@ class ManagementApi {
      */
     import(api, apiId) {
         const requestSettings = {
-            method: 'post',
-            body: api
+            method: 'POST',
+            data: api
         };
-        requestSettings.url = apiId ? util.format('apis/%s/import', apiId) : 'apis/import';
+        requestSettings.url = apiId ? util.format('/apis/%s/import', apiId) : '/apis/import';
         return this._request(requestSettings);
     }
 
@@ -741,8 +745,8 @@ class ManagementApi {
      */
     getApplication(applicationId) {
         const requestSettings = {
-            method: 'get',
-            url: util.format('applications/%s', applicationId)
+            method: 'GET',
+            url: util.format('/applications/%s', applicationId)
         };
         return this._request(requestSettings);
     }
@@ -754,8 +758,8 @@ class ManagementApi {
      */
     getTenants() {
         const requestSettings = {
-            method: 'get',
-            url: 'configuration/tenants'
+            method: 'GET',
+            url: '/configuration/tenants'
         };
         return this._request(requestSettings);
     }
@@ -777,9 +781,9 @@ class ManagementApi {
         delete data.owner;
         delete data.picture_url;
         const requestSettings = {
-            method: 'put',
-            body: data,
-            url: util.format('apis/%s', apiId)
+            method: 'PUT',
+            data: data,
+            url: util.format('/apis/%s', apiId)
         };
         return this._request(requestSettings);
     }
@@ -791,8 +795,8 @@ class ManagementApi {
      */
     deploy(apiId) {
         const requestSettings = {
-            method: 'post',
-            url: util.format('apis/%s/deploy', apiId)
+            method: 'POST',
+            url: util.format('/apis/%s/deploy', apiId)
         };
         return this._request(requestSettings);
     }
@@ -804,8 +808,8 @@ class ManagementApi {
      */
     searchUsers(searchTerm) {
         const requestSettings = {
-            method: 'get',
-            url: util.format('search/users?q=%s', searchTerm)
+            method: 'GET',
+            url: util.format('/search/users?q=%s', searchTerm)
         };
         return this._request(requestSettings);
     }
@@ -818,7 +822,7 @@ class ManagementApi {
      */
     getUser(userId) {
         const requestSettings = {
-            method: 'get',
+            method: 'GET',
             url: util.format('users/%s', userId)
         };
         return this._request(requestSettings);
@@ -834,9 +838,9 @@ class ManagementApi {
      */
     transferOwnership(elementId, elementType, reference, oldOwnerRole) {
         const requestSettings = {
-            method: 'post',
-            url: util.format('%ss/%s/members/transfer_ownership', elementType, elementId),
-            body: {'reference': reference, 'role': oldOwnerRole}
+            method: 'POST',
+            url: util.format('/%ss/%s/members/transfer_ownership', elementType, elementId),
+            data: {'reference': reference, 'role': oldOwnerRole}
         };
         return this._request(requestSettings);
     }
@@ -849,16 +853,16 @@ class ManagementApi {
      */
     listLdapUsers(pageNumber = 1, pageSize = 100) {
         const requestSettings = {
-            method: 'get',
-            url: util.format('users?page=%d&size=%d', pageNumber, pageSize)
+            method: 'GET',
+            url: util.format('/users?page=%d&size=%d', pageNumber, pageSize)
         };
         return this._request(requestSettings).pipe(
             expand(response => {
                 return response.page.current == response.page.total_pages
                     ? Rx.EMPTY
                     : this._request({
-                        method: 'get',
-                        url: util.format('users?page=%d&size=%d', response.page.current + 1, pageSize)
+                        method: 'GET',
+                        url: util.format('/users?page=%d&size=%d', response.page.current + 1, pageSize)
                     });
             }),
             mergeMap(response => response.data),
@@ -874,7 +878,7 @@ class ManagementApi {
      */
     listUserMemberships(userId, type) {
         const requestSettings = {
-            method: 'get',
+            method: 'GET',
             url: util.format('/users/%s/memberships?type=%s', userId, type)
         };
         return this._request(requestSettings).pipe(
@@ -897,7 +901,7 @@ class ManagementApi {
      */
     getApiDirectMembers(apiId) {
         const requestSettings = {
-            method: 'get',
+            method: 'GET',
             url: util.format('/apis/%s/members', apiId)
         };
         return this._request(requestSettings);
@@ -912,7 +916,7 @@ class ManagementApi {
      */
     deleteApiDirectMember(apiId, userId) {
         const requestSettings = {
-            method: 'delete',
+            method: 'DELETE',
             url: util.format('/apis/%s/members?user=%s', apiId, userId)
         };
         return this._request(requestSettings).pipe(
@@ -928,7 +932,7 @@ class ManagementApi {
      */
     getGroupMembers(groupId) {
         const requestSettings = {
-            method: 'get',
+            method: 'GET',
             url: util.format('/configuration/groups/%s/members', groupId)
         };
         return this._request(requestSettings);
@@ -947,9 +951,9 @@ class ManagementApi {
      */
     listAudits(eventType = undefined, from = undefined, to = new Date().getTime(), page = 1, size = 2000, delayBetweenRequests = 0) {
         const initialRequest = {
-            method: 'get',
+            method: 'GET',
             url: util.format('/audit'),
-            qs: {
+            params: {
                 event: eventType,
                 from: from,
                 to: to,
@@ -968,7 +972,7 @@ class ManagementApi {
                     .pipe(
                         map(result => {
                             const nextRequest = Object.assign({}, pagedResult.nextRequest);
-                            nextRequest.qs.page++;
+                            nextRequest.params.page++;
                             return new PagedResult(nextRequest, result);
                         }),
                         // Apply delay between API emission
@@ -993,9 +997,9 @@ class ManagementApi {
      */
     subscribe(applicationId, planId) {
         const requestSettings = {
-            method: 'post',
+            method: 'POST',
             url: util.format('/applications/%s/subscriptions', applicationId),
-            qs: {
+            params: {
                 plan: planId
             }
         };
@@ -1010,9 +1014,9 @@ class ManagementApi {
      */
     validateSubscription(apiId, subscriptionId) {
         const requestSettings = {
-            method: 'post',
+            method: 'POST',
             url: util.format('/apis/%s/subscriptions/%s/_process', apiId, subscriptionId),
-            body: {
+            data: {
                 accepted: true
             }
         };
@@ -1074,8 +1078,29 @@ class ManagementApi {
             requestSettings.timeout = DEFAULT_TIMEOUT;
         }
 
+        // Any GET requests are retried by default
+        if (requestSettings.method === 'GET') {
+            requestSettings.retry = true;
+        }
+        // If a retry mechanism has been set, then apply the default configuration if necessary
+        if (requestSettings.retry) {
+            if (!requestSettings.retryConfig) {
+                requestSettings.retryConfig = {};
+            }
+            if (!requestSettings.retryConfig.retry) {
+                requestSettings.retryConfig.retry = DEFAULT_RETRY_ATTEMPT;
+            }
+            if (!requestSettings.retryConfig.noResponseRetry) {
+                requestSettings.retryConfig.noResponseRetry = DEFAULT_RETRY_ATTEMPT;
+            }
+            if (!requestSettings.retryConfig.retryDelay) {
+                requestSettings.retryConfig.retryDelay = DEFAULT_RETRY_DELAY;
+            }
+            requestSettings.retryConfig.httpMethodsToRetry = [requestSettings.method];
+        }
+
         // Finally do the request and extract answer payload
-        return Rx.from(axios.request(requestSettings)).pipe(
+        return Rx.from(gaxios.request(requestSettings)).pipe(
             map(answer => answer.data)
         );
     }

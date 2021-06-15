@@ -1,10 +1,13 @@
 const util = require('util');
-const axios = require('axios');
+const gaxios = require('gaxios');
 const Rx = require('rxjs');
+const https = require('https');
 const { catchError, concatMap, expand, filter, mergeMap, map, reduce, take } = require('rxjs/operators')
 
 const WILDCARD_INDEX = '-*';
 const DEFAULT_TIMEOUT = 120000; // in ms
+const DEFAULT_RETRY_DELAY = 5000; // in ms
+const DEFAULT_RETRY_ATTEMPT = 3;
 
 /**
  * Elasticsearch client instance.
@@ -31,16 +34,17 @@ class ElasticSearch {
      */
     searchHits(search, pageSize = 100) {
         const requestSettings = {
-            method: 'get',
-            url: util.format('%s/_search', search.indexName),
-            body: {
+            method: 'POST',
+            url: util.format('/%s/_search', search.indexName),
+            data: {
               "size": pageSize,
               "query": search.query,
               "sort": [
                 {[search.timeKey]: "asc"},
                 {"_id": "desc"}
               ]
-            }
+            },
+            retry: true
         };
         return (pageSize > 0) ? this._requestAllPages(requestSettings) : this._request(requestSettings);
     }
@@ -54,14 +58,15 @@ class ElasticSearch {
      */
     aggregateHits(search, aggregation, timeout = DEFAULT_TIMEOUT) {
         const requestSettings = {
-            method: 'get',
-            url: util.format('%s/_search', search.indexName),
-            body: {
+            method: 'POST',
+            url: util.format('/%s/_search', search.indexName),
+            data: {
               "size": 0,
               "query": search.query,
               "aggs" : aggregation
             },
-            timeout: timeout
+            timeout: timeout,
+            retry: true
         };
         return this._request(requestSettings);
     }
@@ -74,9 +79,9 @@ class ElasticSearch {
      */
     deleteByQuery(search) {
         const requestSettings = {
-            method: 'post',
-            url: util.format('%s/_delete_by_query', search.indexName),
-            body: {
+            method: 'POST',
+            url: util.format('/%s/_delete_by_query', search.indexName),
+            data: {
               "query": search.query
             }
         };
@@ -120,7 +125,7 @@ class ElasticSearch {
                     map(result => {
                         const nextRequest = Object.assign({}, result.request);
                         const lastItem = result.response.hits.hits[result.response.hits.hits.length - 1];
-                        nextRequest.body.search_after = lastItem.sort;
+                        nextRequest.data.search_after = lastItem.sort;
                         return nextRequest;
                     }),
                     mergeMap(request => this._request(request)
@@ -166,8 +171,29 @@ class ElasticSearch {
             requestSettings.timeout = DEFAULT_TIMEOUT;
         }
 
+        // Any GET requests are retried by default
+        if (requestSettings.method === 'GET') {
+            requestSettings.retry = true;
+        }
+        // If a retry mechanism has been set, then apply the default configuration if necessary
+        if (requestSettings.retry) {
+            if (!requestSettings.retryConfig) {
+                requestSettings.retryConfig = {};
+            }
+            if (!requestSettings.retryConfig.retry) {
+                requestSettings.retryConfig.retry = DEFAULT_RETRY_ATTEMPT;
+            }
+            if (!requestSettings.retryConfig.noResponseRetry) {
+                requestSettings.retryConfig.noResponseRetry = DEFAULT_RETRY_ATTEMPT;
+            }
+            if (!requestSettings.retryConfig.retryDelay) {
+                requestSettings.retryConfig.retryDelay = DEFAULT_RETRY_DELAY;
+            }
+            requestSettings.retryConfig.httpMethodsToRetry = [requestSettings.method];
+        }
+
         // Finally do the request and extract answer payload
-        return Rx.from(axios.request(requestSettings)).pipe(
+        return Rx.from(gaxios.request(requestSettings)).pipe(
             map(answer => answer.data)
         );
     }
