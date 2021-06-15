@@ -77,7 +77,7 @@ class EnableLogs extends CliCommand {
                 ),
                 filter(api => {
                     if (!api.is_synchronized) {
-                        this.displayRaw(util.format('API %s (%s) has NOT been set because having ongoing changes that have not been synchronized', api.name, api.id));
+                        this.console.raw(util.format('API %s (%s) has NOT been set because having ongoing changes that have not been synchronized', api.name, api.id));
                         return false;
                     }
                     return true;
@@ -120,7 +120,7 @@ class EnableLogs extends CliCommand {
                 )
             )
             .subscribe(this.defaultSubscriber(api => {
-                this.displayRaw(util.format('API %s (%s) has been set', api.name, api.id));
+                this.console.raw(util.format('API %s (%s) has been set', api.name, api.id));
             }));
     }
 

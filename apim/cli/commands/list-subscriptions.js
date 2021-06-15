@@ -210,7 +210,7 @@ class ListSubscriptions extends CliCommand {
     }
 
     getSubscriptionsNumberOfRequests() {
-        const elasticsearch = ElasticSearch.createInstance(new ElasticSearch.Settings(this.argv['elasticsearch-url'], this.argv['elasticsearch-url-header']));
+        const elasticsearch = ElasticSearch.createInstance(this.console, new ElasticSearch.Settings(this.argv['elasticsearch-url'], this.argv['elasticsearch-url-header']));
         const aggregation = {
             "RequestsByApi" : {
               "terms": {

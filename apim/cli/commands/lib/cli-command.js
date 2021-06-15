@@ -2,13 +2,8 @@ const util = require('util');
 const readline = require('readline');
 const yargs = require('yargs');
 const ManagementApi = require('./management-api');
+const { Console, LOG_LEVEL } = require('./console');
 const Rx = require('rxjs');
-
-const LOG_LEVEL = {
-    info: 'INFO',
-    error: 'ERROR',
-    warn: 'WARNING'
-};
 
 const CSV_SEPARATOR = ',';
 
@@ -32,6 +27,8 @@ class CliCommand {
         this.name = name;
         this.description = description;
         this.specificOptions = specificOptions;
+        this.argv = null; // will be initialised further
+        this.console = null; // will be initialised further
     }
 
     /**
@@ -78,61 +75,12 @@ class CliCommand {
     }
 
     /**
-     * Display a message as it without any log level
-     *
-     * @param {string} message the message to display as it without any log level
-     */
-    displayRaw(message) {
-        console.log(message);
-    }
-
-    /**
-     * Display a log message
-     *
-     * @param level the log level message
-     * @param message the message to log
-     * @private
-     */
-    _displayLog(level, message) {
-        console.log(util.format('%s %s [%s] %s', this.name, new Date(), level, message));
-    }
-
-    /**
-     * Display an information message
-     *
-     * @param {string} message the information message to display
-     */
-    displayInfo(message) {
-        if (!this.argv.silent) {
-            this._displayLog(LOG_LEVEL.info, message);
-        }
-    }
-
-    /**
-     * Display a warning message
-     *
-     * @param {string} message the warning message to display
-     */
-    displayWarning(message) {
-        this._displayLog(LOG_LEVEL.warn, message);
-    }
-
-    /**
-     * Display an error message
-     *
-     * @param {string} message the error message to display
-     */
-    displayError(message) {
-        this._displayLog(LOG_LEVEL.error, message);
-    }
-
-    /**
      * Display an error message and exit process with error
      *
      * @param {string} message the error message to display
      */
     handleError(error) {
-        this.displayError(util.inspect(error));
+        this.console.error(util.inspect(error));
         this.exitWithError();
     }
 
@@ -153,12 +101,12 @@ class CliCommand {
      * @param {function(x: ?T)} error the function that will be called on error
      */
     defaultSubscriber(next = () => {
-    }, error = this.displayError.bind(this)) {
+    }, error = this.console.error.bind(this)) {
         return Rx.Subscriber.create(
             next,
             error,
             _complete => {
-                this.displayInfo('Done.')
+                this.console.info('Done.')
             }
         );
     }
@@ -216,16 +164,23 @@ class CliCommand {
     }
 
     /**
+     * Initialized Console attached to this ManagementAPI instance
+     */
+    _initConsole() {
+        this.console = new Console(this.name, this.argv.silent ? LOG_LEVEL.warn.level : LOG_LEVEL.info.level)
+    }
+
+    /**
      * Run this Management API Script instance by actually running the script definition specified by #definition(ManagementApi)
      */
     run() {
         this._initArgv();
-        this.managementApi = ManagementApi.createInstance(new ManagementApi.Settings(this.argv['management-api-url'], this.argv['management-api-url-header']));
-        this.displayInfo("Starting...");
+        this._initConsole();
+        this.managementApi = ManagementApi.createInstance(this.console, new ManagementApi.Settings(this.argv['management-api-url'], this.argv['management-api-url-header']));
+        this.console.info("Starting...");
         const prerequisites = this.checkPrerequisites();
         if (!prerequisites.satisfied) {
-            this.displayError("Prerequisites aren't satisfied: " + prerequisites.description);
-            this.exitWithError();
+            this.handleError("Prerequisites aren't satisfied: " + prerequisites.description)
         }
         // TODO remove managementApi argument as it is now directly owned by the CliCommand instance itself
         this.definition(this.managementApi);
@@ -284,7 +239,7 @@ class CliCommandReporter {
 
     complete() {
         this.doComplete();
-        this.cliCommand.displayInfo('Done.');
+        this.cliCommand.console.info('Done.');
     }
 
     doComplete() {
@@ -358,7 +313,7 @@ class CsvCliCommandReporter extends CliCommandReporter {
      */
     doNext(line) {
         if (this.firstEvent) {
-            this.cliCommand.displayInfo('Results (in CSV format):');
+            this.cliCommand.console.info('Results (in CSV format):');
             this._displayLine(this.header);
             this.firstEvent = false;
         }
@@ -372,7 +327,7 @@ class CsvCliCommandReporter extends CliCommandReporter {
      * @private
      */
     _displayLine(line) {
-        this.cliCommand.displayRaw(line.join(CSV_SEPARATOR));
+        this.cliCommand.console.raw(line.join(CSV_SEPARATOR));
     }
 
 }

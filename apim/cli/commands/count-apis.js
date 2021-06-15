@@ -70,7 +70,7 @@ class CountApis extends CliCommand {
                 count()
             )
             .subscribe(this.defaultSubscriber(
-                apiCount => this.displayRaw(util.format('There are %s APIs in the requested environment according to the given search predicate', apiCount))
+                apiCount => this.console.raw(util.format('There are %s APIs in the requested environment according to the given search predicate', apiCount))
             ));
     }
 

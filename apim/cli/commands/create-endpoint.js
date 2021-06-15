@@ -163,7 +163,7 @@ class CreateEndpoint extends CliCommand {
                     // Check if group name exists
                     let filteredGroup = api.proxy.groups.filter(group => group.name === this.argv['endpoint-group-name']);
                     if (filteredGroup.length === 0) {
-                        this.displayWarning(util.format("Endpoint cannot be created: API '%s' has not endpoint group with name '%s'.", api.name, this.argv['endpoint-group-name']));
+                        this.console.warn(util.format("Endpoint cannot be created: API '%s' has not endpoint group with name '%s'.", api.name, this.argv['endpoint-group-name']));
                         return Rx.EMPTY;
                     }
                     filteredGroup = filteredGroup[0];
@@ -171,7 +171,7 @@ class CreateEndpoint extends CliCommand {
                     // Check if endpoint name does not already exist (from any API endpoint group)
                     const alreadyExistingEndpointName = api.proxy.groups.filter(group => group.endpoints && group.endpoints.filter(endpoint => endpoint.name === this.argv['endpoint-name']).length > 0);
                     if (alreadyExistingEndpointName.length > 0) {
-                        this.displayWarning(util.format("Endpoint cannot be created: Endpoint name already exists for API '%s' from group '%s'.", api.name, alreadyExistingEndpointName[0].name));
+                        this.console.warn(util.format("Endpoint cannot be created: Endpoint name already exists for API '%s' from group '%s'.", api.name, alreadyExistingEndpointName[0].name));
                         return Rx.EMPTY;
                     }
 
@@ -199,7 +199,7 @@ class CreateEndpoint extends CliCommand {
                     )
                 )
             )
-            .subscribe(this.defaultSubscriber(api => this.displayRaw(util.format("Endpoint added for API '%s' ('%s')", api.name, api.proxy.context_path))));
+            .subscribe(this.defaultSubscriber(api => this.console.raw(util.format("Endpoint added for API '%s' ('%s')", api.name, api.proxy.context_path))));
     }
 
 }

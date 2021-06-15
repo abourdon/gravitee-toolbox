@@ -44,9 +44,9 @@ class ListApisQuality extends CliCommand {
                         .filter(criteria => criteria.complied)
                         .reduce((acc, criteria) => acc + criteria.name + ", ", "\t");
 
-                    this.displayRaw(util.format('%s (%s) - %d', apiQuality.api.name, apiQuality.api.context_path, apiQuality.quality.score))
+                    this.console.raw(util.format('%s (%s) - %d', apiQuality.api.name, apiQuality.api.context_path, apiQuality.quality.score))
                     if (reachedCriteria.trim().length > 0) {
-                        this.displayRaw(reachedCriteria);
+                        this.console.raw(reachedCriteria);
                     }
                 }
             ));

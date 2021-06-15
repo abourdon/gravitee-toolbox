@@ -4,7 +4,6 @@ const gaxios = require('gaxios');
 const https = require('https');
 const Rx = require('rxjs');
 const {concatMap, distinct, expand, filter, mergeMap, map, reduce, take, tap} = require('rxjs/operators');
-const { triggerAsyncId } = require('async_hooks');
 
 const DEFAULT_TIMEOUT = 120000; // in ms
 const DEFAULT_RETRY_DELAY = 5000; // in ms
@@ -64,9 +63,11 @@ class ManagementApi {
     /**
      * Create a new ManagementApi client instance according to the given settings
      *
+     * @param {object} console the Console allowing this ManagementAPI instance to display log to user
      * @param {object} managementApiSettings settings of this ManagementApi client instance
      */
-    constructor(managementApiSettings) {
+    constructor(console, managementApiSettings) {
+        this.console = console;
         this.settings = managementApiSettings;
     }
 
@@ -1096,6 +1097,12 @@ class ManagementApi {
             if (!requestSettings.retryConfig.retryDelay) {
                 requestSettings.retryConfig.retryDelay = DEFAULT_RETRY_DELAY;
             }
+            if (!requestSettings.retryConfig.onRetryAttempt) {
+                const localConsole = this.console;
+                requestSettings.retryConfig.onRetryAttempt = function (err) {
+                    localConsole.warn(util.format("Error in calling the Management API (%s, %s). Retrying...", err.code, err.message));
+                };
+            }
             requestSettings.retryConfig.httpMethodsToRetry = [requestSettings.method];
         }
 
@@ -1141,7 +1148,7 @@ module.exports = {
     PLAN_STATUS: PLAN_STATUS,
     PLAN_SECURITY_TYPE: PLAN_SECURITY_TYPE,
     SUBSCRIPTION_STATUS: SUBSCRIPTION_STATUS,
-    createInstance: function (settings) {
-        return new ManagementApi(settings);
+    createInstance: function (console, settings) {
+        return new ManagementApi(console, settings);
     }
 };

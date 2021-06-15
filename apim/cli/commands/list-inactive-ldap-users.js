@@ -56,18 +56,18 @@ class ListInactiveLdapUsers extends CliCommand {
             )
             .subscribe(this.defaultSubscriber(
                 users => {
-                    this.displayRaw(util.format('Following users can be removed from Gravitee:%s', users));
+                    this.console.raw(util.format('Following users can be removed from Gravitee:%s', users));
                     ldapClient.close();
                 },
                 error => {
-                    this.displayError(error);
+                    this.console.error(error);
                     ldapClient.close();
                 }
             ));
     }
 
     initLdapClient() {
-        return LdapClient.createInstance(new LdapClient.Settings(
+        return LdapClient.createInstance(this.console, new LdapClient.Settings(
            this.argv['ldap-url'],
            this.argv['ldap-username'],
            this.argv['ldap-password'],
@@ -91,7 +91,7 @@ class ListInactiveLdapUsers extends CliCommand {
 
     isInactiveInLdap(username, ldapUser) {
         var active = ldapUser.dn !== '';
-        this.displayInfo(active
+        this.console.info(active
             ? util.format("User %s has been found in LDAP", ldapUser.cn)
             : util.format("No LDAP user corresponds to user %s", username));
         return !active;

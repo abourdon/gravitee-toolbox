@@ -89,7 +89,7 @@ class Subscribe extends CliCommand {
         // Check if there is at least one filter by filter type (APIs, Applications, Plans) that has been filled out by user
         Object.keys(FILTERS).forEach(filterType => {
             if (!hasFilterTypeBeenFilledOut.bind(this)(filterType)) {
-                this.displayWarning(util.format("No filter has been defined to select %s. All records are returned.", filterType));
+                this.console.warn(util.format("No filter has been defined to select %s. All records are returned.", filterType));
             }
         });
         return CliCommandPrerequisites.createSatisfied();

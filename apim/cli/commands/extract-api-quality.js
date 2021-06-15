@@ -250,7 +250,7 @@ class ExtractApiQuality extends CliCommand {
 
     definition(managementApi) {
         const elasticsearch = this.runtimeEvaluationEnabled()
-            ? ElasticSearch.createInstance(new ElasticSearch.Settings(this.argv['elasticsearch-url'], this.argv['elasticsearch-url-header']))
+            ? ElasticSearch.createInstance(this.console, new ElasticSearch.Settings(this.argv['elasticsearch-url'], this.argv['elasticsearch-url-header']))
             : undefined;
 
         const apiIds = managementApi.login(this.argv['username'], this.argv['password']).pipe(

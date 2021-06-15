@@ -19,9 +19,11 @@ class ElasticSearch {
     /**
      * Create a new ElasticSearch client instance according to the given settings
      *
+     * @param {object} console the Console allowing this ManagementAPI instance to display log to user
      * @param {object} elasticSearchSettings settings of this ElasticSearch client instance
      */
-    constructor(elasticSearchSettings) {
+    constructor(console, elasticSearchSettings) {
+        this.console = console;
         this.settings = elasticSearchSettings;
     }
 
@@ -189,6 +191,12 @@ class ElasticSearch {
             if (!requestSettings.retryConfig.retryDelay) {
                 requestSettings.retryConfig.retryDelay = DEFAULT_RETRY_DELAY;
             }
+            if (!requestSettings.retryConfig.onRetryAttempt) {
+                const localConsole = this.console;
+                requestSettings.retryConfig.onRetryAttempt = function (err) {
+                    localConsole.warn(util.format("Error in calling the ElasticSearch API (%s, %s). Retrying...", err.code, err.message));
+                };
+            }
             requestSettings.retryConfig.httpMethodsToRetry = [requestSettings.method];
         }
 
@@ -255,7 +263,7 @@ ElasticSearchResult = class {
 module.exports = {
     Search: ElasticSearch.Search,
     Settings: ElasticSearch.Settings,
-    createInstance: function(settings) {
-        return new ElasticSearch(settings);
+    createInstance: function(console, settings) {
+        return new ElasticSearch(console, settings);
     }
 }

@@ -64,7 +64,7 @@ class LdapClient {
         return this.search(filter, LDAP_ATTRIBUTES).pipe(
             map(results => {
                 if (results.length > 1) {
-                    this.displayError(util.format("LDAP search returned no unique result for filter '%s': %s", filter, results));
+                    this.console.error(util.format("LDAP search returned no unique result for filter '%s': %s", filter, results));
                 }
                 return results.length >= 1 ? results[0] : this._emptyUser(uid);
             })

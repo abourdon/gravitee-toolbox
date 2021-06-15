@@ -72,7 +72,7 @@ class DeleteLogs extends CliCommand {
             )
          ).subscribe(this.defaultSubscriber(
             deletionResult => {
-                this.displayInfo(util.format('Deleted %d logs', deletionResult.deleted));
+                this.console.raw(util.format('Deleted %d logs', deletionResult.deleted));
             }
         ));
     }

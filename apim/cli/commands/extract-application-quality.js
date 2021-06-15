@@ -80,7 +80,7 @@ class ExtractApplicationQuality extends CliCommand {
     definition(managementApi) {
         // ElasticSearch connection
         const elasticsearch = this.argv['elasticsearch-url'] ?
-            ElasticSearch.createInstance(new ElasticSearch.Settings(this.argv['elasticsearch-url'], this.argv['elasticsearch-url-header'])) :
+            ElasticSearch.createInstance(this.console, new ElasticSearch.Settings(this.argv['elasticsearch-url'], this.argv['elasticsearch-url-header'])) :
             undefined;
 
         // Process to the application quality extract
@@ -100,7 +100,7 @@ class ExtractApplicationQuality extends CliCommand {
                 ),
 
                 // Start Application quality evaluation
-                tap(app => this.displayInfo(util.format('Get quality metrics for Application "%s" (%s)', app.name, app.id))),
+                tap(app => this.console.info(util.format('Get quality metrics for Application "%s" (%s)', app.name, app.id))),
                 mergeMap(app => this.evaluateCriteria(app, managementApi, elasticsearch)),
             )
             .subscribe(new ExtractApplicationQualityCSVReporter(this));
@@ -208,10 +208,10 @@ class ExtractApplicationQualityCSVReporter extends CliCommandReporter {
     }
 
     doComplete() {
-        this.cliCommand.displayInfo('Applications quality, in CSV format:');
-        this.cliCommand.displayRaw('Application id,Application name,' + this.cliCommand.getEnabledCriteria().map(criteria => criteria.reference).join(CSV_SEPARATOR));
+        this.cliCommand.console.info('Applications quality, in CSV format:');
+        this.cliCommand.console.raw('Application id,Application name,' + this.cliCommand.getEnabledCriteria().map(criteria => criteria.reference).join(CSV_SEPARATOR));
         this.qualityApps.forEach((appQuality) =>
-            this.cliCommand.displayRaw(
+            this.cliCommand.console.raw(
                 appQuality.app.id + CSV_SEPARATOR +
                 appQuality.app.name + CSV_SEPARATOR +
                 appQuality.quality.map(criteria => criteria.complied).join(CSV_SEPARATOR)

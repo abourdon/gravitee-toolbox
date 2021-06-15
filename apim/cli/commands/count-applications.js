@@ -26,7 +26,7 @@ class CountApplications extends CliCommand {
                 count()
             )
             .subscribe(this.defaultSubscriber(
-                apiCount => this.displayRaw(util.format('There are %s applications in the requested environment', apiCount))
+                apiCount => this.console.raw(util.format('There are %s applications in the requested environment', apiCount))
             ));
     }
 }

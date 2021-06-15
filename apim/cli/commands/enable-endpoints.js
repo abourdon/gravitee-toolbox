@@ -178,7 +178,7 @@ class EnableEndpoints extends CliCommand {
                     )
                 )
             )
-            .subscribe(this.defaultSubscriber(apiAndFilteredEndpoint => this.displayRaw(
+            .subscribe(this.defaultSubscriber(apiAndFilteredEndpoint => this.console.raw(
                 util.format("- Operation done for endpoint '%s' (API '%s', endpoint group '%s', target '%s').",
                     apiAndFilteredEndpoint.filteredEndpoint.name,
                     apiAndFilteredEndpoint.api.name,

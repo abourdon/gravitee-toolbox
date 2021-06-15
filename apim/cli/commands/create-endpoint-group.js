@@ -144,7 +144,7 @@ class CreateEndpointGroup extends CliCommand {
                     // Check if group name exists
                     let existingGroup = api.proxy.groups.filter(group => group.name === this.argv['endpoint-group-name']);
                     if (existingGroup.length > 0) {
-                        this.displayWarning(util.format("Endpoint group cannot be created: API '%s' already has an endpoint group with name '%s'.", api.name, this.argv['endpoint-group-name']));
+                        this.console.warning(util.format("Endpoint group cannot be created: API '%s' already has an endpoint group with name '%s'.", api.name, this.argv['endpoint-group-name']));
                         return Rx.EMPTY;
                     }
 
@@ -167,7 +167,7 @@ class CreateEndpointGroup extends CliCommand {
                     )
                 )
             )
-            .subscribe(this.defaultSubscriber(api => this.displayRaw(util.format("Endpoint group added for API '%s' ('%s')", api.name, api.proxy.context_path))));
+            .subscribe(this.defaultSubscriber(api => this.console.raw(util.format("Endpoint group added for API '%s' ('%s')", api.name, api.proxy.context_path))));
     }
 
 }

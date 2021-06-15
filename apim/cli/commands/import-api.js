@@ -81,7 +81,7 @@ class ImportApi extends CliCommand {
                                 };
                                 if (!this.argv['new'] && !this._hasDefinedFilters(apiFilters)) {
                                     const jsonContent = JSON.parse(content);
-                                    this.displayInfo(util.format("No defined filters. Use context path from import file: %s", jsonContent.proxy.context_path));
+                                    this.console.info(util.format("No defined filters. Use context path from import file: %s", jsonContent.proxy.context_path));
                                     apiFilters.byContextPath = util.format("^%s$", jsonContent.proxy.context_path);
                                 }
                                 return new ImportContext(_token, content, apiFilters);
@@ -90,7 +90,7 @@ class ImportApi extends CliCommand {
                 ),
                 mergeMap(context => {
                     if (this.argv['new']) {
-                        this.displayInfo("Create new API from import file");
+                        this.console.info("Create new API from import file");
                         return Rx.of(Object.assign({content: context.importedFileContent, id: null}))
                     }
 
@@ -107,7 +107,7 @@ class ImportApi extends CliCommand {
                                     });
                                     return throwError(msg);
                                 }
-                                this.displayInfo(util.format("Found API %s", apis[0].id));
+                                this.console.info(util.format("Found API %s", apis[0].id));
                                 return Rx.of(Object.assign({content: context.importedFileContent, id: apis[0].id}));
                             })
                         )
@@ -127,8 +127,7 @@ class ImportApi extends CliCommand {
                     const errorMessage = error.hasOwnProperty('message') && error.hasOwnProperty('response')
                         ? util.format('%s. Response body is <%s>)', error.message, util.inspect(error.response.data))
                         : error;
-                    this.displayError(errorMessage);
-                    process.exit(1);
+                    this.handleError(errorMessage);
                 }
             )
         );

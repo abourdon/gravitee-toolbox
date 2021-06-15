@@ -45,7 +45,7 @@ class ListApisWithDirectMembers extends CliCommand {
                     filter(members => members.length > 1),
                     mergeMap(members => this.splitDeletableAndRemainingMembers(managementApi, api, members))
                 )),
-                tap(apiMembers => this.displayRaw(util.format('[%s, %s, %s <%s>] %s (deletable members: %s, remaining members: %s)',
+                tap(apiMembers => this.console.raw(util.format('[%s, %s, %s <%s>] %s (deletable members: %s, remaining members: %s)',
                     apiMembers.api.id,
                     apiMembers.api.context_path,
                     apiMembers.api.owner.displayName,
@@ -62,7 +62,7 @@ class ListApisWithDirectMembers extends CliCommand {
                         var apisDeletableMembers = apisMembers.filter(apiMembers => apiMembers.deletableMembers.length > 0);
 
                         if (apisDeletableMembers.length > 0 && this.argv['ask-for-approval']) {
-                            this.displayRaw("");
+                            this.console.raw("");
                             this.askForApproval(
                                 apisDeletableMembers.map(
                                     apiMembers => util.format(
@@ -161,7 +161,7 @@ class ListApisWithDirectMembers extends CliCommand {
                 map(memberId => Object.assign({api: apiMembers.api.name, member: memberId}))
             ))
         )
-            .subscribe(this.defaultSubscriber(apiMember => this.displayRaw(
+            .subscribe(this.defaultSubscriber(apiMember => this.console.raw(
                 util.format('Member with ID %s deleted from API %s', apiMember.member, apiMember.api)
             )));
     }

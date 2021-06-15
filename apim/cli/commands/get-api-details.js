@@ -48,7 +48,7 @@ class ApiDetails extends CliCommand {
                 mergeMap(details => this.enrichApiSubscriptions(managementApi, this.argv['api-id'], details))
             )
             .subscribe(this.defaultSubscriber(
-                details => this.displayRaw(util.format('[%s, %s, %s <%s>] %s\nPlans:%s\nSubscriptions:%s\nEndpoints:%s',
+                details => this.console.raw(util.format('[%s, %s, %s <%s>] %s\nPlans:%s\nSubscriptions:%s\nEndpoints:%s',
                     details.api.id,
                     details.api.context_path,
                     details.api.owner.displayName,

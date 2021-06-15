@@ -97,7 +97,7 @@ class TransferOwnership extends CliCommand {
             .pipe(
                 reduce((acc, element) => acc.concat(element), []),
                 map(elements => Object.assign({ownedElements: elements, owner: owner})),
-                tap(ownershipTransfer => this.displayInfo(util.format("Ownership transfer to '%s' asked for %d %ss",
+                tap(ownershipTransfer => this.console.info(util.format("Ownership transfer to '%s' asked for %d %ss",
                     ownershipTransfer.owner.displayName, ownershipTransfer.ownedElements.length, this.argv['type'])))
             );
     }
@@ -108,7 +108,7 @@ class TransferOwnership extends CliCommand {
                 mergeMap(element => managementApi.transferOwnership(element.id, this.argv['type'], ownershipTransfer.owner.reference, this.argv['old-owner-role']))
             )
             .subscribe(
-                this.defaultSubscriber(transfer => this.displayInfo(util.format('Ownership transferred to %s', ownershipTransfer.owner.displayName)))
+                this.defaultSubscriber(transfer => this.console.info(util.format('Ownership transferred to %s', ownershipTransfer.owner.displayName)))
             );
     }
 

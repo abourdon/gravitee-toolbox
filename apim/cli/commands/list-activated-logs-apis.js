@@ -88,7 +88,7 @@ class ListActivatedLogsApis extends CliCommand {
             return Rx.of(api);
         }
         if (!api.is_synchronized) {
-            this.displayWarning(util.format('Logs for API %s (%s) have not been disabled: last changes have not been deployed', api.name, api.id));
+            this.console.warn(util.format('Logs for API %s (%s) have not been disabled: last changes have not been deployed', api.name, api.id));
             return Rx.of(api);
         }
         delete api.is_synchronized;

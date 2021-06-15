@@ -113,7 +113,7 @@ class FetchDocumentationPages extends CliCommand {
             mergeMap(apiPage => managementApi.fetchDocumentationPage(apiPage.api.id, apiPage.page.id).pipe(
                     map(fetchedPage => apiPage)
             ))
-        ).subscribe(this.defaultSubscriber(apiPage => this.displayRaw(
+        ).subscribe(this.defaultSubscriber(apiPage => this.console.raw(
             util.format("- Operation done for documentation page '%s' for API '%s'",
                 apiPage.page.name,
                 apiPage.api.name
