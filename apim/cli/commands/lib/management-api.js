@@ -115,6 +115,7 @@ class ManagementApi {
      * This listing retrieve APIs basic information. If you need API details or specific filters, prefer using #listApisDetails() instead.
      *
      * Available filters are:
+     * - byId: to search against API id (exact match)
      * - byName: to search against API name (insensitive regular expression)
      * - byContextPath: to search against context paths (insensitive regular expression)
      *
@@ -134,7 +135,7 @@ class ManagementApi {
                 mergeMap(apis => Rx.from(apis)),
 
                 // Apply filter on id if necessary (strict matches),
-                filter(api => !filters.byId || StringUtils.matches(api.id, filters.byId)),
+                filter(api => !filters.byId || api.id === filters.byId),
 
                 // Apply filter on name if necessary
                 filter(api => !filters.byName || StringUtils.caseInsensitiveMatches(api.name, filters.byName)),
@@ -168,8 +169,7 @@ class ManagementApi {
      * This listing requires to get API details for each API, through export feature, which is time consuming. If you do not need API details or specific filters, prefer using #listApisBasics() instead.
      *
      * Available filters are:
-     * - byName: to search against API name (insensitive regular expression)
-     * - byContextPath: to search against context paths (insensitive regular expression)
+     * - filters from listApisBasics, plus:
      * - byEndpointGroupName: to search against endpoint group names (insensitive regular expression)
      * - byEndpointName: to search against endpoint name (insensitive regular expression)
      * - byEndpointTarget: to search against endpoint target (insensitive regular expression)
