@@ -112,7 +112,7 @@ class ListActivatedLogsApis extends CliCommand {
             .import(api, api.id)
             .pipe(
                 mergeMap(updatedApi => managementApi.deploy(updatedApi.id)),
-                tap(_ => this.console.warn(util.format('Logs for API %s (%s) have been disabled', api.name, api.id)))
+                tap(_ => this.console.info(util.format('Logs for API %s (%s) have been disabled', api.name, api.id)))
             );
     }
 
