@@ -766,30 +766,6 @@ class ManagementApi {
     }
 
     /**
-     * Updates API identified by the given API identifier.
-     *
-     * @param {object} api the API definition to update
-     * @param {string} apiId identifier of the API to update
-     */
-    update(api, apiId) {
-        var data = Object.assign(api);
-        delete data.id;
-        delete data.state;
-        delete data.context_path;
-        delete data.deployed_at;
-        delete data.created_at;
-        delete data.updated_at;
-        delete data.owner;
-        delete data.picture_url;
-        const requestSettings = {
-            method: 'PUT',
-            data: data,
-            url: util.format('/apis/%s', apiId)
-        };
-        return this._request(requestSettings);
-    }
-
-    /**
      * Deploy API identified by the given API identifier
      *
      * @param {string} apiId identifier of the API to deploy
