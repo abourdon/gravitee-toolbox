@@ -12,6 +12,7 @@
     "gaxios": "4.3.0",
     "rxjs": "7.1.0",
     "simple-ldap-search": "3.0.2",
-    "yargs": "17.0.1"
+    "yargs": "17.0.1",
+    "jsonpath-plus": "5.0.7"
   }
 }

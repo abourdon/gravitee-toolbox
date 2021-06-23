@@ -4,6 +4,7 @@ const gaxios = require('gaxios');
 const https = require('https');
 const Rx = require('rxjs');
 const {concatMap, distinct, expand, filter, mergeMap, map, reduce, take, tap} = require('rxjs/operators');
+const { JSONPath } = require('jsonpath-plus');
 
 const DEFAULT_TIMEOUT = 120000; // in ms
 const DEFAULT_RETRY_DELAY = 5000; // in ms
@@ -176,6 +177,7 @@ class ManagementApi {
      * - byPlanName: to search against plan name (insensitive regular expression)
      * - byPlanSecurityType: to search against plan security type
      * - byPolicyTechnicalName: to search against the policy technical name (insensitive regular expression)
+     * - byPolicyContent: to search against the policy content by evaluating a json path (extended) predicate
      *
      * @param {object} filters an object containing desired filters if necessary
      * @param {number} delayPeriod the delay period to temporize API broadcast (by default 50 milliseconds)
@@ -253,7 +255,7 @@ class ManagementApi {
                         )
                 }),
 
-                // Apply filter on policies if necessary
+                // Apply filter on policy name if necessary
                 mergeMap(api => {
                     if (!filters.byPolicyTechnicalName) {
                         return Rx.of(api);
@@ -275,6 +277,24 @@ class ManagementApi {
                             // Then filter the policy technical name according to the given filter
                             filter(policyTechnicalName => StringUtils.caseInsensitiveMatches(policyTechnicalName, filters.byPolicyTechnicalName))
                         )});
+                }),
+
+                // Apply filter on policy content if necessary
+                mergeMap(api => {
+                    if (!filters.byPolicyContent) {
+                        return Rx.of(api);
+                    }
+                    return _applyFilterOnBothPlansAndDesignPaths(api, (api, paths) => {
+                        return paths.pipe(
+                            // For each path
+                            mergeMap(paths => Object.values(paths)),
+
+                            // And each policy
+                            mergeMap(policies => policies),
+
+                            // Filter its content based on the given jsonpath predicate
+                            filter(policy => JSONPath(filters.byPolicyContent, policy).length > 0)
+                        )});
                 })
             );
 
@@ -287,10 +307,10 @@ class ManagementApi {
          * @private
          */
         function _applyFilterOnBothPlansAndDesignPaths(api, filter) {
-            const designPaths = Rx.of(api.details.paths);
-            const plansPaths = api.details.plans ? Rx.from(api.details.plans).pipe(
+            const designPaths = api.details.paths === undefined ? Rx.EMPTY : Rx.of(api.details.paths);
+            const plansPaths = api.details.plans === undefined ? Rx.EMPTY : Rx.from(api.details.plans).pipe(
                 map(plan => plan.paths)
-            ) : Rx.EMPTY;
+            );
             return Rx.merge(filter(api, designPaths), filter(api, plansPaths)).pipe(
                 map(() => api),
                 distinct(api => api.id)

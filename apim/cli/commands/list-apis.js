@@ -55,7 +55,12 @@ class ListApis extends CliCommand {
                     choices: Object.values(PLAN_SECURITY_TYPE)
                 },
                 'filter-by-policy-technical-name': {
-                    describe: 'Filter APIs against their policy technical names (insensitive regex) (see https://docs.gravitee.io/apim_policies_overview.html for more details)'
+                    describe: 'Filter APIs against their policy technical name (insensitive regex) (see https://docs.gravitee.io/apim_policies_overview.html for more details)',
+                    type: 'string'
+                },
+                'filter-by-policy-content': {
+                    describe: 'Filter APIs against their policy content by evaluating a json path (extended) predicate (see https://docs.gravitee.io/apim_policies_overview.html and https://github.com/JSONPath-Plus/JSONPath for more details)',
+                    type: 'string'
                 }
             }
         );
@@ -84,7 +89,8 @@ class ListApis extends CliCommand {
                             byEndpointTarget: this.argv['filter-by-endpoint-target'],
                             byPlanName: this.argv['filter-by-plan-name'],
                             byPlanSecurityType: this.argv['filter-by-plan-security-type'],
-                            byPolicyTechnicalName: this.argv['filter-by-policy-technical-name']
+                            byPolicyTechnicalName: this.argv['filter-by-policy-technical-name'],
+                            byPolicyContent: this.argv['filter-by-policy-content']
                         });
                 }),
 
