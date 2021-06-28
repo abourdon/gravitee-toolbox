@@ -17,17 +17,20 @@ const LOG_LEVEL = {
     error: {
         level: 2,
         name: 'ERROR',
-        color: FONT_COLOR.RED
+        color: FONT_COLOR.RED,
+        out: console.error 
     },
     warn: {
         level: 1,
         name: 'WARNING',
-        color: FONT_COLOR.YELLOW
+        color: FONT_COLOR.YELLOW,
+        out: console.warn
     },
     info: {
         level: 0,
         name: 'INFO',
-        color: FONT_COLOR.GREEN
+        color: FONT_COLOR.GREEN,
+        out: console.log
     }
 };
 
@@ -95,7 +98,7 @@ class Console {
      * @private
      */
     _log(level, message) {
-        console.log(util.format('%s%s %s [%s] %s%s', level.color, this.name, new Date(), level.name, message, FONT_COLOR.RESET));
+        level.out(util.format('%s%s %s [%s] %s%s', level.color, this.name, new Date(), level.name, message, FONT_COLOR.RESET));
     }
 
 }
