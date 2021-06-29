@@ -8,6 +8,7 @@ const {concatMap, distinct, expand, filter, mergeMap, map, reduce, take, tap} = 
 const DEFAULT_TIMEOUT = 120000; // in ms
 const DEFAULT_RETRY_DELAY = 5000; // in ms
 const DEFAULT_RETRY_ATTEMPT = 3;
+const DEFAULT_STATUS_CODES_TO_RETRY = [[100, 199], [408, 408], [429, 429], [500, 599]];
 const HEADER_SEPARATOR = ':';
 const EXPORT_EXCLUDE = {
     GROUPS: 'groups',
@@ -1103,6 +1104,9 @@ class ManagementApi {
             if (!requestSettings.retryConfig.retryDelay) {
                 requestSettings.retryConfig.retryDelay = DEFAULT_RETRY_DELAY;
             }
+            if (!requestSettings.retryConfig.statusCodesToRetry) {
+                requestSettings.retryConfig.statusCodesToRetry = DEFAULT_STATUS_CODES_TO_RETRY;
+            }
             if (!requestSettings.retryConfig.onRetryAttempt) {
                 const localConsole = this.console;
                 requestSettings.retryConfig.onRetryAttempt = function (err) {
@@ -1111,6 +1115,9 @@ class ManagementApi {
             }
             requestSettings.retryConfig.httpMethodsToRetry = [requestSettings.method];
         }
+
+        // Trace HTTP request
+        this.console.debug(util.format('Calling %s%s', requestSettings.baseURL, requestSettings.url));
 
         // Finally do the request and extract answer payload
         return Rx.from(gaxios.request(requestSettings)).pipe(

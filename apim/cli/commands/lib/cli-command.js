@@ -63,6 +63,11 @@ class CliCommand {
                 alias: 'silent',
                 describe: "Only errors will be displayed, but no information message",
                 type: 'boolean'
+            },
+            'v': {
+                alias: 'verbose',
+                describe: "Debug messages will be also displayed",
+                type: 'boolean',
             }
         });
     }
@@ -167,7 +172,8 @@ class CliCommand {
      * Initialized Console attached to this ManagementAPI instance
      */
     _initConsole() {
-        this.console = new Console(this.name, this.argv.silent ? LOG_LEVEL.warn.level : LOG_LEVEL.info.level)
+        const minimumLogLevel = this.argv.silent ? LOG_LEVEL.warn.level : this.argv.verbose ? LOG_LEVEL.debug.level : LOG_LEVEL.info.level;
+        this.console = new Console(this.name, minimumLogLevel)
     }
 
     /**

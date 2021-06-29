@@ -1,36 +1,33 @@
 const util = require('util');
-
-/**
- * List of used font colors on console messages
- */
-const FONT_COLOR = {
-    RED: "\x1b[31m",
-    YELLOW: "\x1b[33m",
-    GREEN: "\x1b[32m",
-    RESET: "\x1b[0m"
-}
+const colors = require('colors/safe');
 
 /**
  * Allowed log levels
  */
 const LOG_LEVEL = {
     error: {
-        level: 2,
+        level: 3,
         name: 'ERROR',
-        color: FONT_COLOR.RED,
+        color: colors.red,
         out: console.error 
     },
     warn: {
-        level: 1,
+        level: 2,
         name: 'WARNING',
-        color: FONT_COLOR.YELLOW,
+        color: colors.yellow,
         out: console.warn
     },
     info: {
-        level: 0,
+        level: 1,
         name: 'INFO',
-        color: FONT_COLOR.GREEN,
+        color: colors.green,
         out: console.log
+    },
+    debug: {
+        level: 0,
+        name: 'DEBUG',
+        color: colors.grey,
+        out: console.debug
     }
 };
 
@@ -57,6 +54,17 @@ class Console {
      */
      raw(message) {
         console.log(message);
+    }
+
+    /**
+     * Display a debug message
+     *
+     * @param {string} message the debug message to display
+     */
+     debug(message) {
+        if (this.minimumLogLevel <= LOG_LEVEL.debug.level) {
+            this._log(LOG_LEVEL.debug, message);
+        }
     }
 
     /**
@@ -98,7 +106,7 @@ class Console {
      * @private
      */
     _log(level, message) {
-        level.out(util.format('%s%s %s [%s] %s%s', level.color, this.name, new Date(), level.name, message, FONT_COLOR.RESET));
+        level.out(level.color(util.format('%s %s [%s] %s', this.name, new Date(), level.name, message)));
     }
 
 }
