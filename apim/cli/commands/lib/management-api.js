@@ -4,7 +4,6 @@ const gaxios = require('gaxios');
 const https = require('https');
 const Rx = require('rxjs');
 const {concatMap, distinct, expand, filter, mergeMap, map, reduce, take, tap} = require('rxjs/operators');
-const { JSONPath } = require('jsonpath-plus');
 
 const DEFAULT_TIMEOUT = 120000; // in ms
 const DEFAULT_RETRY_DELAY = 5000; // in ms
@@ -178,6 +177,7 @@ class ManagementApi {
      * - byPlanSecurityType: to search against plan security type
      * - byPolicyTechnicalName: to search against the policy technical name (insensitive regular expression)
      * - byPolicyContent: to search against the policy content by evaluating a json path (extended) predicate
+     * - byAny: to search against the full technical structure of the API (json path predicate)
      *
      * @param {object} filters an object containing desired filters if necessary
      * @param {number} delayPeriod the delay period to temporize API broadcast (by default 50 milliseconds)
@@ -293,8 +293,18 @@ class ManagementApi {
                             mergeMap(policies => policies),
 
                             // Filter its content based on the given jsonpath predicate
-                            filter(policy => JSONPath(filters.byPolicyContent, policy).length > 0)
+                            filter(policy => StringUtils.jsonPathMatches(policy, filters.byPolicyContent))
                         )});
+                }),
+
+                // Apply filter on the full structure if necessary
+                mergeMap(api => {
+                    if (!filters.byAny) {
+                        return Rx.of(api);
+                    }
+                    return Rx.of(api).pipe(
+                        filter(api => StringUtils.jsonPathMatches(api, filters.byAny))
+                    );
                 })
             );
 

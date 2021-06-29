@@ -1,3 +1,5 @@
+const { JSONPath } = require('jsonpath-plus');
+
 /**
  * Numeric value if no result is given when String.search() is applied
  *
@@ -41,6 +43,17 @@ class StringUtils {
      */
     static matches(text, regex, flags) {
         return this.search(text, regex, flags) !== NO_RESULT_ON_STRING_SEARCH;
+    }
+
+    /**
+     * Test if given json path predicate matches on given text (or object)
+     *
+     * @param json the json text (or object) to test
+     * @param jsonPathPredicate the jsonpath predicate to apply (extended version, see https://github.com/JSONPath-Plus/JSONPath)
+     * @returns {boolean} true if json path predicate matches on json text (or object), false otherwise
+     */
+     static jsonPathMatches(json, jsonPathPredicate) {
+        return JSONPath(jsonPathPredicate, json).length > 0
     }
 
     /**
