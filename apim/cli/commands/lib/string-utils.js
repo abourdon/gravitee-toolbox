@@ -34,6 +34,17 @@ class StringUtils {
     }
 
     /**
+     * Display values on the given json text (or object) that match the given json patch predicate (extended)
+     *
+     * @param json the json text (or object) to test
+     * @param jsonPathPredicate the jsonpath predicate to apply (extended version, see https://github.com/JSONPath-Plus/JSONPath)
+     * @returns {boolean} true if json path predicate matches on json text (or object), false otherwise
+     */
+    static jsonPathSearch(json, jsonPathPredicate) {
+        return JSONPath(jsonPathPredicate, json);
+    }
+
+    /**
      * Test if given regex matches on given text, by using optional flags
      *
      * @param text the text to test
