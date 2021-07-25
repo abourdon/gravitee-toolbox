@@ -2,11 +2,8 @@ const util = require('util');
 const Rx = require('rxjs');
 const { mergeMap, map } = require('rxjs/operators');
 const { JSONPath } = require('jsonpath-plus');
-const {CliCommand} = require('./lib/cli-command');
+const {CliCommand, JsonCliCommandReporter} = require('./lib/cli-command');
 const StringUtils = require('./lib/string-utils');
-
-const JSON_OUTPUT_REPLACER = null;
-const JSON_OUTPUT_SPACES_INDENT = 2;
 
 /**
  * Get API details.
@@ -38,7 +35,7 @@ class ApiDetails extends CliCommand {
             mergeMap(_token => managementApi.export(this.argv['api-id'])),
             map(details => this.argv['filter-output'] ? StringUtils.jsonPathSearch(details, this.argv['filter-output']) : details)
         )
-        .subscribe(this.defaultSubscriber(details => this.console.raw(JSON.stringify(details, JSON_OUTPUT_REPLACER, JSON_OUTPUT_SPACES_INDENT))));
+        .subscribe(new JsonCliCommandReporter(this));
     }
 
 }

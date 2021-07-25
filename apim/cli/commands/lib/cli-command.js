@@ -6,6 +6,8 @@ const { Console, LOG_LEVEL } = require('./console');
 const Rx = require('rxjs');
 
 const CSV_SEPARATOR = ',';
+const JSON_OUTPUT_REPLACER = null;
+const JSON_OUTPUT_SPACES_INDENT = 2;
 
 /**
  * Base type for any Management API Command Line Interface's command.
@@ -338,9 +340,37 @@ class CsvCliCommandReporter extends CliCommandReporter {
 
 }
 
+/**
+ * Dedicated CliCommandReporter that produce live display in JSON format.
+ *
+ * @author Aurelien Bourdon
+ */
+ class JsonCliCommandReporter extends CliCommandReporter {
+
+    /**
+     * Create a new JsonCliCommandReporter instance with its associated CliCommand instance
+     * 
+     * @param {object} cliCommand 
+     */
+    constructor(cliCommand) {
+        super(cliCommand);
+    }
+
+    /**
+     * Display the given object under pretty JSON format
+     *
+     * @param object
+     */
+    doNext(object) {
+        this.cliCommand.console.raw(JSON.stringify(object, JSON_OUTPUT_REPLACER, JSON_OUTPUT_SPACES_INDENT));
+    }
+
+}
+
 module.exports = {
     CliCommand: CliCommand,
     CliCommandPrerequisites: CliCommandPrerequisites,
     CliCommandReporter: CliCommandReporter,
-    CsvCliCommandReporter: CsvCliCommandReporter
+    CsvCliCommandReporter: CsvCliCommandReporter,
+    JsonCliCommandReporter: JsonCliCommandReporter
 };
