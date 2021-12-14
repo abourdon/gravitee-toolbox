@@ -76,7 +76,10 @@ class CreateEndpoint extends CliCommand {
     definition_checkArguments(managementApi) {
         // Only one check has to be done for tenants to control if values currently exist on the Gravitee platform.
         managementApi
-            .getTenants()
+            .login(this.argv['username'], this.argv['password'])
+            .pipe(
+                mergeMap(_token => managementApi.getTenants())
+            )
             .subscribe(
                 expectedTenants => {
                     const actualTenants = this.argv['endpoint-tenant'];
@@ -103,7 +106,7 @@ class CreateEndpoint extends CliCommand {
      */
     definition_selectApis(managementApi) {
         managementApi
-        // Select Apis...
+            // Select Apis...
             .login(this.argv['username'], this.argv['password'])
             .pipe(
                 mergeMap(_token => managementApi.listApisBasics({
