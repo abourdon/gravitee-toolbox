@@ -109,7 +109,7 @@ class ListActivatedLogsApis extends CliCommand {
         api.proxy.logging.mode = LOGGING_MODE_DISABLED;
         delete api.proxy.logging.condition;
         return managementApi
-            .import(api, api.id)
+            .updateApi(api, api.id)
             .pipe(
                 mergeMap(updatedApi => managementApi.deploy(updatedApi.id)),
                 tap(_ => this.console.info(util.format('Logs for API %s (%s) have been disabled', api.name, api.id)))

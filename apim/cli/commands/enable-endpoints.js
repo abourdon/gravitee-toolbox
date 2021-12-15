@@ -168,7 +168,7 @@ class EnableEndpoints extends CliCommand {
 
                 // Finally import API with new endpoint definition (without deploy it)
                 mergeMap(apiAndFilteredEndpoint => managementApi
-                    .import(apiAndFilteredEndpoint.api.details, apiAndFilteredEndpoint.api.id)
+                    .updateApi(apiAndFilteredEndpoint.api.details, apiAndFilteredEndpoint.api.id)
                     .pipe(
                         mergeMap(importedApi => managementApi.deploy(importedApi.id)
                             .pipe(

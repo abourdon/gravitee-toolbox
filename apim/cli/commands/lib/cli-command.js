@@ -108,7 +108,7 @@ class CliCommand {
      * @param {function(x: ?T)} error the function that will be called on error
      */
     defaultSubscriber(next = () => {
-    }, error = this.console.error.bind(this.console)) {
+    }, error = this.handleError.bind(this)) {
         return Rx.Subscriber.create(
             next,
             error,

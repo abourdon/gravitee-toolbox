@@ -113,8 +113,8 @@ class ImportApi extends CliCommand {
                         )
                 }),
                 // Import and deploy if flag is set
-                mergeMap(api => (!this.argv['deploy']) ? managementApi.import(api.content, api.id) :
-                    managementApi.import(api.content, api.id)
+                mergeMap(api => (!this.argv['deploy']) ? managementApi.updateApi(api.content, api.id) :
+                    managementApi.updateApi(api.content, api.id)
                         .pipe(
                             mergeMap(importedApi => managementApi.deploy(importedApi.id))
                         )

@@ -755,17 +755,32 @@ class ManagementApi {
     }
 
     /**
-     * Create or update the given API definition.
+     * Create an API with the given API definition.
      *
      * @param {object} api the API definition to create or update
-     * @param {string} apiId if given then update API with apiId identifier with the given API definition
      */
-    import(api, apiId) {
+    createApi(api) {
         const requestSettings = {
             method: 'POST',
-            data: api
+            data: api,
+            url: '/apis/import'
         };
-        requestSettings.url = apiId ? util.format('/apis/%s/import', apiId) : '/apis/import';
+        return this._request(requestSettings);
+    }
+
+
+    /**
+     * Update the given API id with the given API definition
+     * 
+     * @param {U} api the API definition to update
+     * @param {*} apiId the API id to update
+     */
+    updateApi(api, apiId) {
+        const requestSettings = {
+            method: 'PUT',
+            data: api,
+            url: util.format('/apis/%s/import', apiId)
+        };
         return this._request(requestSettings);
     }
 

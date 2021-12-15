@@ -157,7 +157,7 @@ class CreateEndpointGroup extends CliCommand {
 
                 // Apply changes
                 mergeMap(api => managementApi
-                    .import(api, api.id)
+                    .updateApi(api, api.id)
                     .pipe(
                         mergeMap(importedApi => managementApi.deploy(importedApi.id)
                             .pipe(

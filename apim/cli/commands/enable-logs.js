@@ -113,7 +113,7 @@ class EnableLogs extends CliCommand {
                 tap(api => this.setLoggingConfiguration(api.details)),
 
                 // Finally update APIs
-                mergeMap(api => managementApi.import(api.details, api.id)
+                mergeMap(api => managementApi.updateApi(api.details, api.id)
                     .pipe(
                         mergeMap(api => managementApi.deploy(api.id))
                     )
