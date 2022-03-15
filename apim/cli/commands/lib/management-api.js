@@ -36,11 +36,11 @@ const PLAN_SECURITY_TYPE = {
     OAUTH2: 'oauth2'
 };
 const SUBSCRIPTION_STATUS = {
-    ACCEPTED: 'accepted',
-    PENDING: 'pending',
-    PAUSED: 'paused',
-    REJECTED: 'rejected',
-    CLOSED: 'closed'
+    ACCEPTED: 'ACCEPTED',
+    PENDING: 'PENDING',
+    PAUSED: 'PAUSED',
+    REJECTED: 'REJECTED',
+    CLOSED: 'CLOSED'
 };
 const POLICY_CONFIGURATION_KEY = {
     METHODS: 'methods',
