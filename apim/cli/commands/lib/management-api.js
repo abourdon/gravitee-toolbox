@@ -859,11 +859,11 @@ class ManagementApi {
      * @param {string} user reference, retrieved from user search
      * @param {string} previous owner role: USER or OWNER
      */
-    transferOwnership(elementId, elementType, reference, oldOwnerRole) {
+    transferOwnership(elementId, elementType, reference, oldOwnerRole, oldOwnerType) {
         const requestSettings = {
             method: 'POST',
             url: util.format('/%ss/%s/members/transfer_ownership', elementType, elementId),
-            data: {'reference': reference, 'role': oldOwnerRole}
+            data: {'reference': reference, 'role': oldOwnerRole, 'type': oldOwnerType }
         };
         return this._request(requestSettings);
     }

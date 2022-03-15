@@ -38,6 +38,11 @@ class TransferOwnership extends CliCommand {
                     choices: ['USER', 'OWNER'],
                     default: 'USER'
                 },
+                'old-owner-type': {
+                    descripbe: 'Type of role from the previous owner of the API',
+                    choices: ['USER','GROUP'],
+                    default: 'USER'
+                },
                 'ask-for-approval': {
                     describe: "Ask for user approval before transferring owernship",
                     type: 'boolean',
@@ -105,7 +110,7 @@ class TransferOwnership extends CliCommand {
     applyTransferOwnership(ownershipTransfer, managementApi) {
         Rx.from(ownershipTransfer.ownedElements)
             .pipe(
-                mergeMap(element => managementApi.transferOwnership(element.id, this.argv['type'], ownershipTransfer.owner.reference, this.argv['old-owner-role']))
+                mergeMap(element => managementApi.transferOwnership(element.id, this.argv['type'], ownershipTransfer.owner.reference, this.argv['old-owner-role'], this.argv['old-owner-type']))
             )
             .subscribe(
                 this.defaultSubscriber(transfer => this.console.info(util.format('Ownership transferred to %s', ownershipTransfer.owner.displayName)))
