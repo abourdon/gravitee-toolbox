@@ -30,7 +30,7 @@ const PLAN_STATUS = {
     CLOSED: 'closed'
 };
 const PLAN_SECURITY_TYPE = {
-    API_KEY: 'api_key',
+    API_KEY: 'API_KEY',
     KEYLESS: 'key_less',
     JWT: 'jwt',
     OAUTH2: 'oauth2'
